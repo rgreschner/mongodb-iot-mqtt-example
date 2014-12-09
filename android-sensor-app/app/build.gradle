@@ -1,0 +1,29 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 20
+    buildToolsVersion "20.0.0"
+
+    defaultConfig {
+        applicationId "com.ragres.mongodb.iotexample"
+        minSdkVersion 15
+        targetSdkVersion 15
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.jakewharton:butterknife:+'
+    compile 'io.reactivex:rxandroid:0.23.0'
+    compile 'com.google.code.gson:gson:2.3'
+    compile files('libs/org.eclipse.paho.android.service-1.0.1.jar')
+    compile files('libs/org.eclipse.paho.client.mqttv3-1.0.1.jar')
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="action_settings">Settings</string>
+    <string name="app_name">MongoDB IoT Example</string>
+    <string name="btn_connect_to_server_text">Connect</string>
+    <string name="btn_disconnect_from_server_text">Disconnect</string>
+    <string name="btn_test_mqtt_text">Test</string>
+    <string name="label_server_address">MQTT Server Address:</string>
+    <string name="label_connection_status_descr_text">Connection Status: </string>
+    <string name="value_default_mqtt_server">"tcp://localhost:1883"</string>
+
+</resources>
