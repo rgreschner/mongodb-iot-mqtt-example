@@ -10,7 +10,8 @@ import android.util.Log;
 
 import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
-import com.ragres.mongodb.iotexample.domain.AccelerometerData;
+import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -52,11 +53,13 @@ public class AndroidApplication extends Application {
 
             // ASSUMPTION: If mqttClient is != null, it is connected
             // (as defined by connection handling code).
-            // TODO/DISCUSSION: methods from outer class are accessed without this.
+            // TODO/DISCUSSION: methods from outer class are accessed without 'this'.
             if (isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient()) {
 
-                AccelerometerData accelerometerData = AccelerometerData.fromArray(event.values);
-                String jsonData = gson.toJson(accelerometerData);
+                AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
+                SensorDataDTO sensorDataDTO = SensorDataDTO.
+                        createWithPayload(AccelerometerDataPayload.TYPE, accelerometerData);
+                String jsonData = gson.toJson(sensorDataDTO);
 
                 MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
                 try {

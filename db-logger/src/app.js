@@ -28,11 +28,20 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 			}
 			if (topic.indexOf('/accelerometer') >= 0) {
 				var data = JSON.parse(message);
+				var payload = data.payload;
+				
+				// Generate unique id for
+				// received data.
 				data._id = {
-					'timestamp': data.timestamp,
-					'device': device
+					'timestamp': new Date(data.timestamp),
+					'device': device,
+					'payloadType' : data.payloadType
 				};
+				
+				// Cleanup data, remove dupes.
+				delete data.payloadType;
 				delete data.timestamp;
+				
 				// Upserting, e.g. replacing data here.
 				// The assumption is that sensor values differing only by
 				// fractures of milliseconds are very identical
