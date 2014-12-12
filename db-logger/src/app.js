@@ -20,7 +20,8 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 		try {
 			// ASSUMPTION: Device name is always second element
 			// in split array (from path).
-			var device = topic.split('/')[1];
+			var splitTopic = topic.split('/');
+			var device = splitTopic[1];
 			
 			if (topic.indexOf('/debug') >= 0) {
 				console.log('Debug: ' + message);
@@ -35,11 +36,10 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				data._id = {
 					'timestamp': new Date(data.timestamp),
 					'device': device,
-					'payloadType' : data.payloadType
+					'type' : splitTopic[2]
 				};
 				
 				// Cleanup data, remove dupes.
-				delete data.payloadType;
 				delete data.timestamp;
 				
 				// Upserting, e.g. replacing data here.

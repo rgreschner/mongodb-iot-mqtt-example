@@ -21,13 +21,6 @@ public class SensorDataDTO {
     private long timestamp;
 
     /**
-     * Payload identifier.
-     * Needed since serialization to
-     * JSON removes type information.
-     */
-    private String payloadType;
-
-    /**
      * Default constructor.
      */
     public SensorDataDTO() {
@@ -53,13 +46,11 @@ public class SensorDataDTO {
 
     /**
      * Create sensor data DTO with payload.
-     * @param payloadType Type identifier of payload.
      * @param payload Actual payload.
      * @return Created DTO.
      */
-    public static SensorDataDTO createWithPayload(String payloadType, AbstractPayload payload) {
+    public static SensorDataDTO createWithPayload(AbstractPayload payload) {
         SensorDataDTO created = new SensorDataDTO();
-        created.setPayloadType(payloadType);
         created.setPayload(payload);
         return created;
     }
@@ -82,19 +73,4 @@ public class SensorDataDTO {
         this.timestamp = timestamp;
     }
 
-    /**
-     * Get payload identifier.
-     * @return Payload identifier.
-     */
-    public String getPayloadType() {
-        return payloadType;
-    }
-
-    /**
-     * Set payload identifier.
-     * @param payloadType Payload identifier.
-     */
-    public void setPayloadType(String payloadType) {
-        this.payloadType = payloadType;
-    }
 }

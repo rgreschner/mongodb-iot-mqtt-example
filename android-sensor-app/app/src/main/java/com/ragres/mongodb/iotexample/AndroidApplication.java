@@ -58,7 +58,7 @@ public class AndroidApplication extends Application {
 
                 AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
                 SensorDataDTO sensorDataDTO = SensorDataDTO.
-                        createWithPayload(AccelerometerDataPayload.TYPE, accelerometerData);
+                        createWithPayload(accelerometerData);
                 String jsonData = gson.toJson(sensorDataDTO);
 
                 MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
