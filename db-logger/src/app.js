@@ -20,7 +20,8 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 		try {
 			// ASSUMPTION: Device name is always second element
 			// in split array (from path).
-			var device = topic.split('/')[1];
+			var splitTopic = topic.split('/');
+			var device = splitTopic[1];
 			
 			if (topic.indexOf('/debug') >= 0) {
 				console.log('Debug: ' + message);
@@ -28,11 +29,19 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 			}
 			if (topic.indexOf('/accelerometer') >= 0) {
 				var data = JSON.parse(message);
+				var payload = data.payload;
+				
+				// Generate unique id for
+				// received data.
 				data._id = {
-					'timestamp': data.timestamp,
-					'device': device
+					'timestamp': new Date(data.timestamp),
+					'device': device,
+					'type' : splitTopic[2]
 				};
+				
+				// Cleanup data, remove dupes.
 				delete data.timestamp;
+				
 				// Upserting, e.g. replacing data here.
 				// The assumption is that sensor values differing only by
 				// fractures of milliseconds are very identical

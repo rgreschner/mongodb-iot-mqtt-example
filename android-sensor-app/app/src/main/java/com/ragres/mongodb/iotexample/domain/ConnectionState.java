@@ -5,7 +5,7 @@ package com.ragres.mongodb.iotexample.domain;
  * MQTT broker.
  */
 public enum ConnectionState {
-    // Connectoin state is unknown.
+    // Connection state is unknown.
     // ASSUMPTION: this should not happen during
     // normal operation.
     UNKNOWN,

@@ -52,7 +52,7 @@ Supported topics *must* follow the convention "device/{deviceName}/{subTopic}".
 
 "debug": Subtopic for debug output. Subscribed payload on persistent DB logger shall be print on screen.
 
-"accelerometer": Subtopic for transmission of device accelerometer sensor data. Subscribed payload on persistent DB logger must be stored in database. The payload is defined as a JSON object "{ 'x': 0, 'y' : 0, 'z': 0, 'timestamp' : 0 } where "x"-"z" correspond to device acceleration in the corresponding orientation axis, "timestamp" is defined as time the sensor event was recorded.
+"accelerometer": Subtopic for transmission of device accelerometer sensor data. Subscribed payload on persistent DB logger must be stored in database. The payload is defined as a JSON object "{ 'x' : 0, 'y' : 0, 'z' : 0 } where "x"-"z" correspond to device acceleration in the corresponding orientation axis. This payload is wrapped on-wire in a Sensor Data DTO (Data Transfer Object) which looks like "{'payload' : { ... }, 'timestamp': 0}" where "timestamp" is defined as time the sensor event was recorded and "payload" is the object structure defined above as payload.
 
 ## Data Architecture
 
