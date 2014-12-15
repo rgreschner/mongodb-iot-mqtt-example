@@ -1,23 +1,10 @@
 package com.ragres.mongodb.iotexample;
 
 import android.app.Application;
-import android.content.Context;
 import android.content.Intent;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
-import android.util.Log;
 
-import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
-import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
-import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
-import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.services.AccelerometerTelemetryService;
-
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 /**
  * Android application class.
@@ -27,7 +14,6 @@ public class AndroidApplication extends Application {
     public static final String SUBTOPIC_ACCELEROMETER = "/accelerometer";
     public static final String SUBTOPIC_DEBUG = "/debug";
     public static final String SUBTOPIC_CONNECTED = "/connected";
-
 
     /**
      * Device name.

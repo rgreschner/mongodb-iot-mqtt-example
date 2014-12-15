@@ -99,7 +99,6 @@ public class AccelerometerTelemetryService extends Service {
     };
 
 
-
     /**
      * Public constructor.
      */
@@ -119,8 +118,9 @@ public class AccelerometerTelemetryService extends Service {
 
     /**
      * Start service.
-     * @param intent Starting intent.
-     * @param flags Service flags.
+     *
+     * @param intent  Starting intent.
+     * @param flags   Service flags.
      * @param startId Start id.
      * @return Start service result.
      */
@@ -134,6 +134,7 @@ public class AccelerometerTelemetryService extends Service {
 
     /**
      * Bind service to intent.
+     *
      * @param intent Intent to bind to.
      * @return Binder.
      */
@@ -165,7 +166,7 @@ public class AccelerometerTelemetryService extends Service {
      * @param relativePath Relative path for subtopic identification.
      * @return Full topic for device component.
      */
-    public String getDeviceSubTopic(String relativePath){
+    public String getDeviceSubTopic(String relativePath) {
         return androidApplication.getDeviceSubTopic(relativePath);
     }
 

@@ -30,6 +30,7 @@ public class SensorDataDTO {
 
     /**
      * Get payload.
+     *
      * @return Payload.
      */
     public AbstractPayload getPayload() {
@@ -38,6 +39,7 @@ public class SensorDataDTO {
 
     /**
      * Set payload.
+     *
      * @param payload Payload.
      */
     public void setPayload(AbstractPayload payload) {
@@ -46,6 +48,7 @@ public class SensorDataDTO {
 
     /**
      * Create sensor data DTO with payload.
+     *
      * @param payload Actual payload.
      * @return Created DTO.
      */

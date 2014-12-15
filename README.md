@@ -20,13 +20,17 @@ Timestamps must be specified as Unix Timestamp from epoch start (01/01/1970) in 
 
 ### Custom-developed solutions
 
-#### Android application (android-app)
+#### Android Application (android-app)
 
 The Android application gathers data from the mobile device's accelerometer and publishes it onto a MQTT broker.
 
-#### Persistent DB logger (db-logger)
+#### Persistent DB Logger (db-logger)
 
 Component responsible for persistent storage of received data from MQTT broker.
+
+#### Docker Server Environment (docker-image)
+
+This is a Dockerfile for server side environment which sets up Mosquitto, MongoDB and node.js for use.
 
 ### COTS Solutions
 

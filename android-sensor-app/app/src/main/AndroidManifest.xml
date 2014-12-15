@@ -20,6 +20,7 @@
 
         <!-- MQTT Service. -->
         <service android:name="org.eclipse.paho.android.service.MqttService" />
+        <!-- Accelerometer Telemetry Service. -->
         <service
             android:name=".services.AccelerometerTelemetryService"
             android:enabled="true"
