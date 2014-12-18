@@ -1,8 +1,14 @@
 package com.ragres.mongodb.iotexample.ui.activities;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -62,6 +68,7 @@ public class MainActivity extends Activity {
      */
     @InjectView(R.id.inputServerAddress)
     EditText inputServerAddress;
+    private LocationManager locationManager;
 
 
     /**
@@ -83,6 +90,34 @@ public class MainActivity extends Activity {
         ConnectivityController connectivityController = getAndroidApplication().
                 getConnectivityController();
         return connectivityController;
+    }
+
+    /**
+     * Function to show settings alert dialog
+     */
+    public void showLocationSettingsAlert() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+
+        alertDialog.setTitle(getString(R.string.show_location_settings_dialog_title));
+
+        alertDialog.setMessage(getString(R.string.show_location_settings_dialog_message));
+
+        // Okay button.
+        alertDialog.setPositiveButton(getString(R.string.show_location_settings_dialog_okay), new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(settingsIntent);
+            }
+        });
+
+        // Cancel button.
+        alertDialog.setNegativeButton(getString(R.string.show_location_settings_dialog_cancel), new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        alertDialog.show();
     }
 
 
@@ -159,6 +194,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         setContentView(R.layout.activity_main);
 
 
@@ -194,6 +230,22 @@ public class MainActivity extends Activity {
                         }
                     }
                 });
+
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        try {
+            boolean isGPSEnabled = locationManager
+                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
+            Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
+            if (!isGPSEnabled) {
+                showLocationSettingsAlert();
+            }
+        } catch (Exception ex0) {
+            Log.e(Logging.TAG, "Error: " + ex0.toString());
+        }
 
     }
 

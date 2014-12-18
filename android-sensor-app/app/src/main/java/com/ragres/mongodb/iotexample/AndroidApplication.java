@@ -4,7 +4,7 @@ import android.app.Application;
 import android.content.Intent;
 
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
-import com.ragres.mongodb.iotexample.services.AccelerometerTelemetryService;
+import com.ragres.mongodb.iotexample.services.TelemetryService;
 
 /**
  * Android application class.
@@ -14,6 +14,7 @@ public class AndroidApplication extends Application {
     public static final String SUBTOPIC_ACCELEROMETER = "/accelerometer";
     public static final String SUBTOPIC_DEBUG = "/debug";
     public static final String SUBTOPIC_CONNECTED = "/connected";
+    public static final String SUBTOPIC_LOCATION = "/location";
 
     /**
      * Device name.
@@ -52,7 +53,7 @@ public class AndroidApplication extends Application {
 
         this.connectivityController = new ConnectivityController(this);
 
-        Intent startServiceIntent = new Intent(this, AccelerometerTelemetryService.class);
+        Intent startServiceIntent = new Intent(this, TelemetryService.class);
         this.startService(startServiceIntent);
     }
 

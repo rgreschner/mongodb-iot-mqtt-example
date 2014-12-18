@@ -27,7 +27,10 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				console.log('Debug: ' + message);
 				return;
 			}
-			if (topic.indexOf('/accelerometer') >= 0) {
+			if (topic.indexOf('/accelerometer') >= 0 || topic.indexOf('/location') >= 0) {
+			
+				var sensorFromTopic = splitTopic[2];
+			
 				var data = JSON.parse(message);
 				var payload = data.payload;
 				
@@ -36,8 +39,20 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				data._id = {
 					'timestamp': new Date(data.timestamp),
 					'device': device,
-					'type' : splitTopic[2]
+					'type' : sensorFromTopic
 				};
+				
+				if (sensorFromTopic == "location"){
+					payload.loc = {
+						'type' : 'Point',
+						'coordinates' : [
+							payload.longitude,
+							payload.latitude
+						]
+					};
+					delete payload.latitude;
+					delete payload.longitude;
+				}
 				
 				// Cleanup data, remove dupes.
 				delete data.timestamp;
@@ -54,6 +69,7 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				});
 				return;
 			}
+
 		} catch (err) {
 			console.log('Error:' + err);
 		}
@@ -62,6 +78,7 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 	// Topics to subscribe on.
 	var topicsToSubscribe = [
 		'device/+/accelerometer',
+		'device/+/location',
 		'device/+/debug'
 	];
 
