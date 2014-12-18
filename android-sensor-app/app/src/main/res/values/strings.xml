@@ -9,5 +9,9 @@
     <string name="label_server_address">MQTT Server Address:</string>
     <string name="label_connection_status_descr_text">Connection Status: </string>
     <string name="value_default_mqtt_server">"tcp://localhost:1883"</string>
+    <string name="show_location_settings_dialog_cancel">Cancel</string>
+    <string name="show_location_settings_dialog_message">GPS is not enabled. Do you want to go to settings menu?</string>
+    <string name="show_location_settings_dialog_title">Enable GPS</string>
+    <string name="show_location_settings_dialog_okay">Settings</string>
 
 </resources>

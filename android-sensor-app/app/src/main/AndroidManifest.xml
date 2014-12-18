@@ -20,12 +20,14 @@
 
         <!-- MQTT Service. -->
         <service android:name="org.eclipse.paho.android.service.MqttService" />
-        <!-- Accelerometer Telemetry Service. -->
+
+        <!-- Telemetry Service. -->
         <service
             android:name=".services.TelemetryService"
             android:enabled="true"
             android:exported="true" >
         </service>
+        
     </application>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />

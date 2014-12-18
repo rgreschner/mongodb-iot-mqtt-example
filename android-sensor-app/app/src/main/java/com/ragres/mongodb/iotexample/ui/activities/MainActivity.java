@@ -95,34 +95,28 @@ public class MainActivity extends Activity {
     /**
      * Function to show settings alert dialog
      */
-    public void showSettingsAlert() {
+    public void showLocationSettingsAlert() {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
 
-        // Setting Dialog Title
-        alertDialog.setTitle("GPS is settings");
+        alertDialog.setTitle(getString(R.string.show_location_settings_dialog_title));
 
-        // Setting Dialog Message
-        alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
+        alertDialog.setMessage(getString(R.string.show_location_settings_dialog_message));
 
-        // Setting Icon to Dialog
-        //alertDialog.setIcon(R.drawable.delete);
-
-        // On pressing Settings button
-        alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+        // Okay button.
+        alertDialog.setPositiveButton(getString(R.string.show_location_settings_dialog_okay), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                startActivity(intent);
+                Intent settingsIntent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(settingsIntent);
             }
         });
 
-        // on pressing cancel button
-        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+        // Cancel button.
+        alertDialog.setNegativeButton(getString(R.string.show_location_settings_dialog_cancel), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
             }
         });
 
-        // Showing Alert Message
         alertDialog.show();
     }
 
@@ -247,7 +241,7 @@ public class MainActivity extends Activity {
                     .isProviderEnabled(LocationManager.GPS_PROVIDER);
             Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
             if (!isGPSEnabled) {
-                showSettingsAlert();
+                showLocationSettingsAlert();
             }
         } catch (Exception ex0) {
             Log.e(Logging.TAG, "Error: " + ex0.toString());
