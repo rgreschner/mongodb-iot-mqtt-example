@@ -1,8 +1,14 @@
 package com.ragres.mongodb.iotexample.ui.activities;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
@@ -62,6 +68,7 @@ public class MainActivity extends Activity {
      */
     @InjectView(R.id.inputServerAddress)
     EditText inputServerAddress;
+    private LocationManager locationManager;
 
 
     /**
@@ -83,6 +90,40 @@ public class MainActivity extends Activity {
         ConnectivityController connectivityController = getAndroidApplication().
                 getConnectivityController();
         return connectivityController;
+    }
+
+    /**
+     * Function to show settings alert dialog
+     */
+    public void showSettingsAlert() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+
+        // Setting Dialog Title
+        alertDialog.setTitle("GPS is settings");
+
+        // Setting Dialog Message
+        alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
+
+        // Setting Icon to Dialog
+        //alertDialog.setIcon(R.drawable.delete);
+
+        // On pressing Settings button
+        alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
+        });
+
+        // on pressing cancel button
+        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Showing Alert Message
+        alertDialog.show();
     }
 
 
@@ -159,6 +200,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         setContentView(R.layout.activity_main);
 
 
@@ -194,6 +236,22 @@ public class MainActivity extends Activity {
                         }
                     }
                 });
+
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        try {
+            boolean isGPSEnabled = locationManager
+                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
+            Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
+            if (!isGPSEnabled) {
+                showSettingsAlert();
+            }
+        } catch (Exception ex0) {
+            Log.e(Logging.TAG, "Error: " + ex0.toString());
+        }
 
     }
 

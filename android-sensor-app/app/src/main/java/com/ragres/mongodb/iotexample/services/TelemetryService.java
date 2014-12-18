@@ -1,13 +1,22 @@
 package com.ragres.mongodb.iotexample.services;
 
+import android.app.AlertDialog;
 import android.app.Service;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
+import android.provider.Settings;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -15,12 +24,13 @@ import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-public class AccelerometerTelemetryService extends Service {
+public class TelemetryService extends Service {
 
     /**
      * Android application instance.
@@ -32,6 +42,8 @@ public class AccelerometerTelemetryService extends Service {
      * If true, accelerometer data is written to log.
      */
     private static boolean LOG_SENSOR_DATA = false;
+
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     /**
      * JSON serializer.
@@ -99,11 +111,54 @@ public class AccelerometerTelemetryService extends Service {
     };
 
 
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            if (isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient()) {
+
+                LocationDataPayload locationData = LocationDataPayload.fromLocation(location);
+                SensorDataDTO sensorDataDTO = SensorDataDTO.
+                        createWithPayload(locationData);
+                String jsonData = gson.toJson(sensorDataDTO);
+
+                MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
+                try {
+                    String topic = getDeviceSubTopic(AndroidApplication.SUBTOPIC_LOCATION);
+                    getConnectivityController().getMqttClient().publish(
+                            topic,
+                            mqttMessage);
+                } catch (MqttException e) {
+                    Log.e(Logging.TAG, e.toString());
+                }
+            }
+
+        }
+
+        @Override
+        public void onStatusChanged(String s, int i, Bundle bundle) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String s) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String s) {
+
+        }
+    };
+
+    private LocationManager locationManager;
+
     /**
      * Public constructor.
      */
-    public AccelerometerTelemetryService() {
+    public TelemetryService() {
     }
+
+
 
     /**
      * Create service.
@@ -113,7 +168,7 @@ public class AccelerometerTelemetryService extends Service {
         this.androidApplication = (AndroidApplication) this.getApplication();
         this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
     }
 
     /**
@@ -128,7 +183,12 @@ public class AccelerometerTelemetryService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         this.sensorManager.registerListener(this.accelerometerListener, this.accelerometerSensor,
                 SensorManager.SENSOR_DELAY_NORMAL);
-        Log.i(Logging.TAG, "AccelerometerTelemetryService was started.");
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0,
+                locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0,
+                locationListener);
+        Log.i(Logging.TAG, "TelemetryService was started.");
+
         return Service.START_NOT_STICKY;
     }
 
@@ -175,6 +235,6 @@ public class AccelerometerTelemetryService extends Service {
      */
     public void onDestroy() {
         this.sensorManager.unregisterListener(this.accelerometerListener);
-        Log.i(Logging.TAG, "AccelerometerTelemetryService was destroyed.");
+        Log.i(Logging.TAG, "TelemetryService was destroyed.");
     }
 }
