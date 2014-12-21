@@ -16,16 +16,13 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
-import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
-
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
+import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 
 /**
  * Service for gathering telemetry data.
@@ -36,6 +33,8 @@ public class TelemetryService extends Service {
      * Android application instance.
      */
     private AndroidApplication androidApplication;
+
+    private BrokerServiceClient brokerServiceClient;
 
     /**
      * Is logging of sensor data enabled?
@@ -48,10 +47,7 @@ public class TelemetryService extends Service {
      */
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    /**
-     * JSON serializer.
-     */
-    private Gson gson = new Gson();
+
     /**
      * Android sensor manager.
      */
@@ -90,17 +86,7 @@ public class TelemetryService extends Service {
                 AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
                 SensorDataDTO sensorDataDTO = SensorDataDTO.
                         createWithPayload(accelerometerData);
-                String jsonData = gson.toJson(sensorDataDTO);
-
-                MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
-                try {
-                    String topic = getDeviceSubTopic(AndroidApplication.SUBTOPIC_ACCELEROMETER);
-                    getConnectivityController().getMqttClient().publish(
-                            topic,
-                            mqttMessage);
-                } catch (MqttException e) {
-                    Log.e(Logging.TAG, e.toString());
-                }
+                brokerServiceClient.sendSensorData(sensorDataDTO, AndroidApplication.SUBTOPIC_ACCELEROMETER);
             }
 
 
@@ -125,17 +111,9 @@ public class TelemetryService extends Service {
                 LocationDataPayload locationData = LocationDataPayload.fromLocation(location);
                 SensorDataDTO sensorDataDTO = SensorDataDTO.
                         createWithPayload(locationData);
-                String jsonData = gson.toJson(sensorDataDTO);
 
-                MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
-                try {
-                    String topic = getDeviceSubTopic(AndroidApplication.SUBTOPIC_LOCATION);
-                    getConnectivityController().getMqttClient().publish(
-                            topic,
-                            mqttMessage);
-                } catch (MqttException e) {
-                    Log.e(Logging.TAG, e.toString());
-                }
+                brokerServiceClient.sendSensorData(sensorDataDTO, AndroidApplication.SUBTOPIC_LOCATION);
+
             }
 
         }
@@ -174,6 +152,7 @@ public class TelemetryService extends Service {
     @Override
     public void onCreate() {
         this.androidApplication = (AndroidApplication) this.getApplication();
+        this.brokerServiceClient = new BrokerServiceClient(androidApplication);
         this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -228,15 +207,6 @@ public class TelemetryService extends Service {
         return androidApplication.isSendSensorDataEnabled();
     }
 
-    /**
-     * Get subtopic on device.
-     *
-     * @param relativePath Relative path for subtopic identification.
-     * @return Full topic for device component.
-     */
-    public String getDeviceSubTopic(String relativePath) {
-        return androidApplication.getDeviceSubTopic(relativePath);
-    }
 
     /**
      * Destroy service.

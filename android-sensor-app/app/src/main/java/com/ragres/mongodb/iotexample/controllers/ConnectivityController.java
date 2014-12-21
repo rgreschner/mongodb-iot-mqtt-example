@@ -24,6 +24,7 @@ import rx.subjects.BehaviorSubject;
  */
 public class ConnectivityController {
 
+    public static final int DISCONNECT_TIMEOUT = 30 * 1000;
     /**
      * Connection state.
      */
@@ -142,6 +143,7 @@ public class ConnectivityController {
 
         String clientId = generateClientId();
         mqttClient = new MqttAndroidClient(context, serverAddress, clientId);
+
         try {
             IMqttToken connectToken = getMqttClient().connect();
             // TODO: wait for completion is probably not the best way
@@ -209,8 +211,8 @@ public class ConnectivityController {
         if (null != getMqttClient()) {
 
             try {
-                IMqttToken disconnectToken = getMqttClient().disconnect();
-                disconnectToken.waitForCompletion();
+                IMqttToken token = getMqttClient().disconnect(DISCONNECT_TIMEOUT);
+                token.waitForCompletion();
                 Log.i(Logging.TAG, "Disconnected from MQTT broker.");
             } catch (MqttException e) {
                 Log.e(Logging.TAG, e.toString());
