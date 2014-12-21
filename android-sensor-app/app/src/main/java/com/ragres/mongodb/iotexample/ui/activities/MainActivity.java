@@ -1,7 +1,9 @@
 package com.ragres.mongodb.iotexample.ui.activities;
 
-import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.DialogFragment;
+import android.app.Fragment;
+import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -9,7 +11,11 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -19,11 +25,15 @@ import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.misc.Logging;
+import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
+import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogFragment;
 
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -36,26 +46,73 @@ import rx.subjects.BehaviorSubject;
 /**
  * Application main UI.
  */
-public class MainActivity extends Activity {
+public class MainActivity extends ActionBarActivity {
 
 
     /**
-     * Connect to server button.
+     * Map containings mappings for button states according to connectivity
+     * state.
+     * Key: Connection state.
+     * Value: Button states for connection states.
      */
-    @InjectView(R.id.btnConnectToServer)
-    Button btnConnectToServer;
+    private static Map<ConnectionState, ConnectivityButtonStates> connectivityButtonStateList
+            = new HashMap<>();
 
     /**
-     * Test MQTT connection.
+     * Static initializer.
+     */
+    static {
+        ConnectivityButtonStates buttonStates = null;
+
+        buttonStates = new ConnectivityButtonStates();
+        buttonStates.setConnectToServerEnabled(false);
+        buttonStates.setDisconnectToServerEnabled(false);
+        buttonStates.setTestMqttEnabled(false);
+        buttonStates.setConnectToServerVisible(false);
+        buttonStates.setDisconnectToServerVisible(false);
+        connectivityButtonStateList.put(ConnectionState.UNKNOWN, buttonStates);
+
+        buttonStates = new ConnectivityButtonStates();
+        buttonStates.setConnectToServerEnabled(false);
+        buttonStates.setDisconnectToServerEnabled(false);
+        buttonStates.setTestMqttEnabled(false);
+        buttonStates.setConnectToServerVisible(false);
+        buttonStates.setDisconnectToServerVisible(true);
+        connectivityButtonStateList.put(ConnectionState.DISCONNECTING, buttonStates);
+
+        buttonStates = new ConnectivityButtonStates();
+        buttonStates.setConnectToServerEnabled(true);
+        buttonStates.setDisconnectToServerEnabled(false);
+        buttonStates.setTestMqttEnabled(false);
+        buttonStates.setConnectToServerVisible(true);
+        buttonStates.setDisconnectToServerVisible(false);
+        connectivityButtonStateList.put(ConnectionState.DISCONNECTED, buttonStates);
+
+        buttonStates = new ConnectivityButtonStates();
+        buttonStates.setConnectToServerEnabled(false);
+        buttonStates.setDisconnectToServerEnabled(true);
+        buttonStates.setTestMqttEnabled(true);
+        buttonStates.setConnectToServerVisible(false);
+        buttonStates.setDisconnectToServerVisible(true);
+        connectivityButtonStateList.put(ConnectionState.CONNECTED, buttonStates);
+
+        buttonStates = new ConnectivityButtonStates();
+        buttonStates.setConnectToServerEnabled(false);
+        buttonStates.setDisconnectToServerEnabled(false);
+        buttonStates.setTestMqttEnabled(false);
+        buttonStates.setConnectToServerVisible(true);
+        buttonStates.setDisconnectToServerVisible(false);
+        connectivityButtonStateList.put(ConnectionState.CONNECTING, buttonStates);
+
+    }
+
+
+    /**
+     * Test MQTT connection button.
      */
     @InjectView(R.id.btnTestMQTT)
     Button btnTestMQTT;
 
-    /**
-     * Connect to server button.
-     */
-    @InjectView(R.id.btnDisconnectFromServer)
-    Button btnDisconnectFromServer;
 
     /**
      * Label for connection status.
@@ -66,9 +123,25 @@ public class MainActivity extends Activity {
     /**
      * Connect to server button.
      */
-    @InjectView(R.id.inputServerAddress)
-    EditText inputServerAddress;
+    @InjectView(R.id.labelServerAddress)
+    TextView labelServerAddress;
+
+
+    /**
+     * Location manager.
+     */
     private LocationManager locationManager;
+
+    /**
+     * Toolbar.
+     */
+    @InjectView(R.id.toolbar)
+    Toolbar toolbar;
+
+    /**
+     * Menu.
+     */
+    private Menu menu;
 
 
     /**
@@ -122,58 +195,25 @@ public class MainActivity extends Activity {
 
 
     /**
-     * Handle clicks on connect button.
-     * Connects to supplied MQTT server instance.
+     * Show connect to MQTT broker dialog.
      */
-    @OnClick(R.id.btnConnectToServer)
-    void onBtnConnectToServerClick() {
+    private void showConnectToMqttDialog() {
+        FragmentTransaction ft = getFragmentManager().beginTransaction();
+        Fragment prev = getFragmentManager().findFragmentByTag("dialog");
+        if (null != prev) {
+            ft.remove(prev);
+        }
+        ft.addToBackStack(null);
 
-        final String serverAddress = inputServerAddress.getText().toString();
 
-        AsyncTask connectTask = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                getConnectivityController().connectToServer(serverAddress);
-                return null;
-            }
-        };
-        connectTask.execute();
-
+        DialogFragment newFragment = ConnectMqttDialogFragment.newInstance();
+        newFragment.show(ft, "dialog");
     }
 
     /**
-     * Handle clicks on connect button.
-     * Connects to supplied MQTT server instance.
+     * Disconnect from MQTT broker.
      */
-    @OnClick(R.id.btnTestMQTT)
-    void onBtnTestMQTTClick() {
-
-
-        AsyncTask connectTask = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                byte[] payload = new Date().toString().getBytes();
-                MqttMessage mqttMessage = new MqttMessage(payload);
-                try {
-                    getConnectivityController().getMqttClient().publish(getAndroidApplication().
-                            getDeviceSubTopic(AndroidApplication.SUBTOPIC_DEBUG), mqttMessage);
-                } catch (MqttException e) {
-                    Log.e(Logging.TAG, e.toString());
-                }
-                return null;
-            }
-        };
-        connectTask.execute();
-
-    }
-
-
-    /**
-     * Handle clicks on disconnect button.
-     * Disconnects from connected MQTT server instance.
-     */
-    @OnClick(R.id.btnDisconnectFromServer)
-    void onBtnDisconnectFromServerClick() {
+    private void disconnectFromServer() {
 
         AsyncTask disconnectTask = new AsyncTask() {
             @Override
@@ -194,14 +234,16 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        setContentView(R.layout.activity_main);
 
+        setContentView(R.layout.activity_main);
 
         // Wire up event listeners.
         ButterKnife.inject(this);
 
-        updateUIForConnectionState(ConnectionState.DISCONNECTED);
+        setSupportActionBar(toolbar);
+        labelServerAddress.setText(getConnectivityController().getServerAddress());
+
+        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
         BehaviorSubject<ConnectionState> connectionStateChangedSubject = getConnectivityController().
                 getConnectionStateChangedSubject();
@@ -212,7 +254,7 @@ public class MainActivity extends Activity {
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
-                        updateUIForConnectionState(connectionState);
+                        updateUIForConnectionState();
                     }
                 });
 
@@ -233,15 +275,19 @@ public class MainActivity extends Activity {
 
     }
 
+    /**
+     * Handle activity resume.
+     */
     @Override
     public void onResume(){
         super.onResume();
+        updateUIForConnectionState();
         try {
             boolean isGPSEnabled = locationManager
                     .isProviderEnabled(LocationManager.GPS_PROVIDER);
             Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
             if (!isGPSEnabled) {
-                showLocationSettingsAlert();
+                //showLocationSettingsAlert();
             }
         } catch (Exception ex0) {
             Log.e(Logging.TAG, "Error: " + ex0.toString());
@@ -250,13 +296,69 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * Refresh UI components for connection states.
-     *
-     * @param connectionState New connection state.
+     * Get color for connection state value.
+     * @param connectionState Connection state to get color for.
+     * @return Color for connection state.
      */
-    private void updateUIForConnectionState(ConnectionState connectionState) {
+    private int getColorForConnectionState(ConnectionState connectionState){
+        int colorId = R.color.color_connection_state_intermediate;
+
+        if (ConnectionState.CONNECTED == connectionState){
+            colorId = R.color.color_connection_state_connected;
+        }
+
+        if (ConnectionState.DISCONNECTED == connectionState){
+            colorId = R.color.color_connection_state_disconnected;
+        }
+
+        int color = getResources().getColor(colorId);
+        return color;
+    }
+
+    /**
+     * Refresh UI components for connection states.
+     */
+    private void updateUIForConnectionState() {
+        ConnectionState connectionState = getConnectivityController().getConnectionState();
         setButtonsEnabledForConnectionState(connectionState);
         labelConnectionStatusValue.setText(connectionState.toString());
+
+        int color = getColorForConnectionState(connectionState);
+        labelConnectionStatusValue.setTextColor(color);
+
+    }
+
+    /**
+     * Create options menu.
+     * @param menu Menu instance for options inflate.
+     * @return Operation handled.
+     */
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu){
+        this.menu = menu;
+        getMenuInflater().inflate(R.menu.main, menu);
+        updateUIForConnectionState();
+        return true;
+    }
+
+    /**
+     * Handle menu options item select.
+     * @param item Selected item.
+     * @return Operation handled.
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item){
+        switch(item.getItemId()){
+            case R.id.action_connect_mqtt:
+                showConnectToMqttDialog();
+                break;
+            case R.id.action_disconnect_mqtt:
+                disconnectFromServer();
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 
     /**
@@ -266,37 +368,28 @@ public class MainActivity extends Activity {
      */
     private void setButtonsEnabledForConnectionState(ConnectionState connectionState) {
 
-        // TODO: Storage of button states in a map with connection state as key
-        // and own datastructure representing values might be better.
+        ConnectivityButtonStates buttonStates =
+                connectivityButtonStateList.get(connectionState);
 
-        switch (connectionState) {
-            case CONNECTED:
-                btnConnectToServer.setEnabled(false);
-                btnDisconnectFromServer.setEnabled(true);
-                btnTestMQTT.setEnabled(true);
-                inputServerAddress.setEnabled(false);
-                break;
-            case CONNECTING:
-                btnConnectToServer.setEnabled(false);
-                btnDisconnectFromServer.setEnabled(false);
-                btnTestMQTT.setEnabled(false);
-                inputServerAddress.setEnabled(false);
-                break;
-            case DISCONNECTING:
-                btnConnectToServer.setEnabled(false);
-                btnDisconnectFromServer.setEnabled(false);
-                btnTestMQTT.setEnabled(false);
-                inputServerAddress.setEnabled(false);
-                break;
-            case DISCONNECTED:
-            default:
-                btnConnectToServer.setEnabled(true);
-                btnDisconnectFromServer.setEnabled(false);
-                btnTestMQTT.setEnabled(false);
-                inputServerAddress.setEnabled(true);
-                break;
-
+        if (null == buttonStates) {
+            buttonStates = connectivityButtonStateList.get(ConnectionState.UNKNOWN);
         }
+
+        btnTestMQTT.setEnabled(buttonStates.isTestMqttEnabled());
+
+        if (null != menu) {
+            menu.findItem(R.id.action_connect_mqtt)
+                    .setEnabled(buttonStates.isConnectToServerEnabled());
+            menu.findItem(R.id.action_disconnect_mqtt)
+                    .setEnabled(buttonStates.isDisconnectToServerEnabled());
+
+            menu.findItem(R.id.action_connect_mqtt)
+                    .setVisible(buttonStates.isConnectToServerVisible());
+            menu.findItem(R.id.action_disconnect_mqtt)
+                    .setVisible(buttonStates.isDisconnectToServerVisible());
+        }
+
+        labelServerAddress.setText(getConnectivityController().getServerAddress());
     }
 
 

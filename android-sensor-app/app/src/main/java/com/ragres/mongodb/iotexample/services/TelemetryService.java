@@ -1,9 +1,7 @@
 package com.ragres.mongodb.iotexample.services;
 
-import android.app.AlertDialog;
 import android.app.Service;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -16,7 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.provider.Settings;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -30,6 +27,9 @@ import com.ragres.mongodb.iotexample.misc.Logging;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+/**
+ * Service for gathering telemetry data.
+ */
 public class TelemetryService extends Service {
 
     /**
@@ -43,6 +43,9 @@ public class TelemetryService extends Service {
      */
     private static boolean LOG_SENSOR_DATA = false;
 
+    /**
+     * Handler for UI operations.
+     */
     private Handler handler = new Handler(Looper.getMainLooper());
 
     /**
@@ -111,6 +114,9 @@ public class TelemetryService extends Service {
     };
 
 
+    /**
+     * Listener for location provider.
+     */
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
@@ -136,20 +142,23 @@ public class TelemetryService extends Service {
 
         @Override
         public void onStatusChanged(String s, int i, Bundle bundle) {
-
+            // Unused.
         }
 
         @Override
         public void onProviderEnabled(String s) {
-
+            // Unused.
         }
 
         @Override
         public void onProviderDisabled(String s) {
-
+            // Unused.
         }
     };
 
+    /**
+     * Location manager.
+     */
     private LocationManager locationManager;
 
     /**
@@ -157,7 +166,6 @@ public class TelemetryService extends Service {
      */
     public TelemetryService() {
     }
-
 
 
     /**

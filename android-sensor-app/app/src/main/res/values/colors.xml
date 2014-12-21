@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <color name="color_connection_state_connected">#00FF00</color>
+    <color name="color_connection_state_disconnected">#FF0000</color>
+    <color name="color_connection_state_intermediate">#0000FF</color>
+
 </resources>

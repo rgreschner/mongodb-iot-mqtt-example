@@ -5,6 +5,7 @@ import android.content.Context;
 import android.util.Log;
 
 import com.ragres.mongodb.iotexample.AndroidApplication;
+import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
@@ -24,9 +25,19 @@ import rx.subjects.BehaviorSubject;
 public class ConnectivityController {
 
     /**
+     * Connection state.
+     */
+    private ConnectionState connectionState = ConnectionState.DISCONNECTED;
+
+    /**
      * Android application instance.
      */
     private AndroidApplication application;
+
+    /**
+     * Server address.
+     */
+    private String serverAddress;
 
     /**
      * Android application context.
@@ -62,6 +73,7 @@ public class ConnectivityController {
     public ConnectivityController(AndroidApplication application) {
         this.application = application;
         this.context = application.getApplicationContext();
+        this.serverAddress = application.getString(R.string.value_default_mqtt_server);
     }
 
     /**
@@ -80,6 +92,11 @@ public class ConnectivityController {
      */
     public BehaviorSubject<ConnectionState> getConnectionStateChangedSubject() {
         return connectionStateChangedSubject;
+    }
+
+    private void updateConnectionState(ConnectionState connectionState){
+        this.connectionState = connectionState;
+        connectionStateChangedSubject.onNext(connectionState);
     }
 
     /**
@@ -103,14 +120,17 @@ public class ConnectivityController {
      */
     public void connectToServer(String serverAddress) {
 
+        this.serverAddress = serverAddress;
+
         Log.i(Logging.TAG, "Connecting to MQTT broker...");
 
-        connectionStateChangedSubject.onNext(ConnectionState.CONNECTING);
+        updateConnectionState(ConnectionState.CONNECTING);
+
 
         // Don't attempt connection on invalid addrss.
         if (!isServerAddressValid(serverAddress)) {
             connectionErrorSubject.onNext("MQTT broker address is invalid.");
-            connectionStateChangedSubject.onNext(ConnectionState.DISCONNECTED);
+            updateConnectionState(ConnectionState.DISCONNECTED);
             return;
         }
 
@@ -131,7 +151,7 @@ public class ConnectivityController {
             // Handle connection errors.
             // TODO: To general?
             Log.e(Logging.TAG, e.toString());
-            connectionStateChangedSubject.onNext(ConnectionState.DISCONNECTED);
+            updateConnectionState(ConnectionState.DISCONNECTED);
             connectionErrorSubject.onNext(e.toString());
             mqttClientLock.release();
             return;
@@ -139,7 +159,7 @@ public class ConnectivityController {
 
         mqttClientLock.release();
 
-        connectionStateChangedSubject.onNext(ConnectionState.CONNECTED);
+        updateConnectionState(ConnectionState.CONNECTED);
 
         Log.i(Logging.TAG, "Connected to MQTT broker: " + serverAddress);
 
@@ -170,7 +190,7 @@ public class ConnectivityController {
 
         Log.i(Logging.TAG, "Disconnecting from MQTT broker...");
 
-        connectionStateChangedSubject.onNext(ConnectionState.DISCONNECTING);
+        updateConnectionState(ConnectionState.DISCONNECTING);
 
         // Gracefully allow transmissions
         // to be finished.
@@ -203,7 +223,7 @@ public class ConnectivityController {
 
         mqttClientLock.release();
 
-        connectionStateChangedSubject.onNext(ConnectionState.DISCONNECTED);
+        updateConnectionState(ConnectionState.DISCONNECTED);
     }
 
     /**
@@ -211,5 +231,28 @@ public class ConnectivityController {
      */
     public MqttAndroidClient getMqttClient() {
         return mqttClient;
+    }
+
+    /**
+     * Get address of connected server.
+     */
+    public String getServerAddress() {
+        return serverAddress;
+    }
+
+    /**
+     * Set address of connected server.
+     * @param serverAddress Address of connected server.
+     */
+    public void setServerAddress(String serverAddress) {
+        this.serverAddress = serverAddress;
+    }
+
+    /**
+     * Get connection state.
+     * @return Connection state.
+     */
+    public ConnectionState getConnectionState() {
+        return connectionState;
     }
 }
