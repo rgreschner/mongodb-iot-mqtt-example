@@ -21,6 +21,7 @@ import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
+import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 
@@ -29,11 +30,17 @@ import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
  */
 public class TelemetryService extends Service {
 
+    public static final int LOCATION_PROVIDER_UPDATE_INTERVAL = 5000;
+    public static final int LOCATION_PROVIDER_MIN_DISTANCE = 0;
+
     /**
      * Android application instance.
      */
     private AndroidApplication androidApplication;
 
+    /**
+     * Broker service client.
+     */
     private BrokerServiceClient brokerServiceClient;
 
     /**
@@ -86,7 +93,7 @@ public class TelemetryService extends Service {
                 AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
                 SensorDataDTO sensorDataDTO = SensorDataDTO.
                         createWithPayload(accelerometerData);
-                brokerServiceClient.sendSensorData(sensorDataDTO, AndroidApplication.SUBTOPIC_ACCELEROMETER);
+                brokerServiceClient.sendSensorData(sensorDataDTO, DeviceSubTopics.SUBTOPIC_ACCELEROMETER);
             }
 
 
@@ -112,7 +119,7 @@ public class TelemetryService extends Service {
                 SensorDataDTO sensorDataDTO = SensorDataDTO.
                         createWithPayload(locationData);
 
-                brokerServiceClient.sendSensorData(sensorDataDTO, AndroidApplication.SUBTOPIC_LOCATION);
+                brokerServiceClient.sendSensorData(sensorDataDTO, DeviceSubTopics.SUBTOPIC_LOCATION);
 
             }
 
@@ -170,10 +177,10 @@ public class TelemetryService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         this.sensorManager.registerListener(this.accelerometerListener, this.accelerometerSensor,
                 SensorManager.SENSOR_DELAY_NORMAL);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 0,
-                locationListener);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0,
-                locationListener);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
         Log.i(Logging.TAG, "TelemetryService was started.");
 
         return Service.START_NOT_STICKY;
@@ -213,6 +220,7 @@ public class TelemetryService extends Service {
      */
     public void onDestroy() {
         this.sensorManager.unregisterListener(this.accelerometerListener);
+        this.locationManager.removeUpdates(locationListener);
         Log.i(Logging.TAG, "TelemetryService was destroyed.");
     }
 }

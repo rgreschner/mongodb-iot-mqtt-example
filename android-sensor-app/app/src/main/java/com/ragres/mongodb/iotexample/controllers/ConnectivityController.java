@@ -4,13 +4,17 @@ package com.ragres.mongodb.iotexample.controllers;
 import android.content.Context;
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.WillDTO;
+import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
@@ -46,6 +50,11 @@ public class ConnectivityController {
     private Context context;
 
     /**
+     * JSON serializer.
+     */
+    private Gson gson = new Gson();
+
+    /**
      * Lock on MQTT client to pretect from
      * concurrent access and thus occuring exceptions.
      */
@@ -74,7 +83,16 @@ public class ConnectivityController {
     public ConnectivityController(AndroidApplication application) {
         this.application = application;
         this.context = application.getApplicationContext();
-        this.serverAddress = application.getString(R.string.value_default_mqtt_server);
+        this.serverAddress = getDefaultBrokerAddress();
+    }
+
+    /**
+     * Get default broker address.
+     * @return Default MQTT broker address.
+     */
+    private String getDefaultBrokerAddress() {
+        String defaultAddress = application.getString(R.string.value_default_mqtt_server);
+        return defaultAddress;
     }
 
     /**
@@ -145,7 +163,8 @@ public class ConnectivityController {
         mqttClient = new MqttAndroidClient(context, serverAddress, clientId);
 
         try {
-            IMqttToken connectToken = getMqttClient().connect();
+            MqttConnectOptions connectionOpts = getBrokerConnectionOptions();
+            IMqttToken connectToken = getMqttClient().connect(connectionOpts);
             // TODO: wait for completion is probably not the best way
             // to handle connect. Use listener?
             connectToken.waitForCompletion();
@@ -168,12 +187,32 @@ public class ConnectivityController {
         byte[] payload = new Date().toString().getBytes();
         MqttMessage mqttMessage = new MqttMessage(payload);
         try {
-            String topic = application.getDeviceSubTopic(AndroidApplication.SUBTOPIC_CONNECTED);
+            String topic = application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_CONNECTED);
             getMqttClient().publish(topic, mqttMessage);
         } catch (MqttException e) {
             Log.e(Logging.TAG, e.toString());
         }
 
+    }
+
+    /**
+     * Get connection options for broker client.
+     * @return Connection options.
+     */
+    private MqttConnectOptions getBrokerConnectionOptions() {
+        MqttConnectOptions connectionOpts = new MqttConnectOptions();
+        connectionOpts.setWill(application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_WILL),
+                getWillPayloadJson().getBytes(), 2, true);
+        return connectionOpts;
+    }
+
+    /**
+     * Get JSON payload for will message.
+     * @return
+     */
+    private String getWillPayloadJson() {
+        String json = gson.toJson(new WillDTO());
+        return json;
     }
 
     /**
