@@ -8,7 +8,7 @@ import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
-import com.ragres.mongodb.iotexample.domain.dto.payloads.WillDTO;
+import com.ragres.mongodb.iotexample.domain.dto.WillDTO;
 import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 

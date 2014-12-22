@@ -1,4 +1,4 @@
-package com.ragres.mongodb.iotexample.domain.dto.payloads;
+package com.ragres.mongodb.iotexample.domain.dto;
 
 
 import java.util.Date;
