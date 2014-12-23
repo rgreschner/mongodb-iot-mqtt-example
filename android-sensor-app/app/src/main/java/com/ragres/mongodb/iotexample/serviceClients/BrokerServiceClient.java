@@ -12,6 +12,8 @@ import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
+import java.util.Date;
+
 /**
  * Service client for broker connectivity.
  */
@@ -86,6 +88,16 @@ public class BrokerServiceClient {
         String jsonData = gson.toJson(sensorDataDTO);
         MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
         return sendMqttMessage(mqttMessage, getDeviceSubTopic(subTopic));
+    }
+
+    /**
+     * Send test message.
+     * @return True if successful, false if not.
+     */
+    public boolean sendTest() {
+        String jsonData = String.valueOf(new Date());
+        MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
+        return sendMqttMessage(mqttMessage, getDeviceSubTopic("/test"));
     }
 
 }

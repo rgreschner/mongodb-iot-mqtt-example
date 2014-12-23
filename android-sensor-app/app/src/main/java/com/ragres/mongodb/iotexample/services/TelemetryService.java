@@ -145,6 +145,7 @@ public class TelemetryService extends Service {
      * Location manager.
      */
     private LocationManager locationManager;
+    private Thread sensorThread;
 
     /**
      * Public constructor.
@@ -175,13 +176,29 @@ public class TelemetryService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        this.sensorManager.registerListener(this.accelerometerListener, this.accelerometerSensor,
-                SensorManager.SENSOR_DELAY_NORMAL);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
-        Log.i(Logging.TAG, "TelemetryService was started.");
+
+        if (null == sensorThread || !sensorThread.isAlive()) {
+            sensorThread = new Thread(new Runnable() {
+                /**
+                 * Run sensor listener operations in own thread so
+                 * service thread gets not blocked.
+                 */
+                @Override
+                public void run() {
+                    Looper.prepare();
+                    Handler handler = new Handler();
+                    sensorManager.registerListener(accelerometerListener, accelerometerSensor,
+                            SensorManager.SENSOR_DELAY_NORMAL, handler);
+                    locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                            LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
+                    locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                            LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
+                    Log.i(Logging.TAG, "TelemetryService was started.");
+                    Looper.loop();
+                }
+            });
+            sensorThread.start();
+        }
 
         return Service.START_NOT_STICKY;
     }
@@ -219,6 +236,10 @@ public class TelemetryService extends Service {
      * Destroy service.
      */
     public void onDestroy() {
+        if (null != sensorThread && sensorThread.isAlive()) {
+            sensorThread.interrupt();
+            sensorThread = null;
+        }
         this.sensorManager.unregisterListener(this.accelerometerListener);
         this.locationManager.removeUpdates(locationListener);
         Log.i(Logging.TAG, "TelemetryService was destroyed.");

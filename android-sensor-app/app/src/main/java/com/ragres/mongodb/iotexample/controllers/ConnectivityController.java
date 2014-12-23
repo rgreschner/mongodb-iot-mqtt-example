@@ -13,7 +13,10 @@ import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
+import org.eclipse.paho.client.mqttv3.IMqttActionListener;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
@@ -29,6 +32,7 @@ import rx.subjects.BehaviorSubject;
 public class ConnectivityController {
 
     public static final int DISCONNECT_TIMEOUT = 30 * 1000;
+    public static final int CONNECT_TIMEOUT = 30 * 1000;
     /**
      * Connection state.
      */
@@ -54,11 +58,6 @@ public class ConnectivityController {
      */
     private Gson gson = new Gson();
 
-    /**
-     * Lock on MQTT client to pretect from
-     * concurrent access and thus occuring exceptions.
-     */
-    private Semaphore mqttClientLock = new Semaphore(1);
 
     /**
      * Connection state changed observable.
@@ -93,6 +92,10 @@ public class ConnectivityController {
     private String getDefaultBrokerAddress() {
         String defaultAddress = application.getString(R.string.value_default_mqtt_server);
         return defaultAddress;
+    }
+
+    private void cleanupAfterDisconnect() {
+        mqttClient = null;
     }
 
     /**
@@ -137,7 +140,7 @@ public class ConnectivityController {
     /**
      * Actually connect to server.
      */
-    public void connectToServer(String serverAddress) {
+    public void connectToServer(final String serverAddress) {
 
         this.serverAddress = serverAddress;
 
@@ -153,45 +156,67 @@ public class ConnectivityController {
             return;
         }
 
-        try {
-            mqttClientLock.acquire();
-        } catch (InterruptedException e) {
-            Log.e(Logging.TAG, e.toString());
-        }
 
         String clientId = generateClientId();
-        mqttClient = new MqttAndroidClient(context, serverAddress, clientId);
+        final MqttAndroidClient localMqttClient = new MqttAndroidClient(context, serverAddress, clientId);
 
-        try {
+
             MqttConnectOptions connectionOpts = getBrokerConnectionOptions();
-            IMqttToken connectToken = getMqttClient().connect(connectionOpts);
-            // TODO: wait for completion is probably not the best way
-            // to handle connect. Use listener?
-            connectToken.waitForCompletion();
-        } catch (MqttException e) {
-            // Handle connection errors.
-            // TODO: To general?
-            Log.e(Logging.TAG, e.toString());
-            updateConnectionState(ConnectionState.DISCONNECTED);
-            connectionErrorSubject.onNext(e.toString());
-            mqttClientLock.release();
-            return;
-        }
-
-        mqttClientLock.release();
-
-        updateConnectionState(ConnectionState.CONNECTED);
-
-        Log.i(Logging.TAG, "Connected to MQTT broker: " + serverAddress);
-
-        byte[] payload = new Date().toString().getBytes();
-        MqttMessage mqttMessage = new MqttMessage(payload);
         try {
-            String topic = application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_CONNECTED);
-            getMqttClient().publish(topic, mqttMessage);
+            localMqttClient.connect(connectionOpts, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken iMqttToken) {
+                    localMqttClient.setCallback(new MqttCallback() {
+                        @Override
+                        public void connectionLost(Throwable throwable) {
+
+                            if (null != throwable)
+                                throwable.printStackTrace();
+
+                            cleanupAfterDisconnect();
+                            updateConnectionState(ConnectionState.DISCONNECTED);
+                        }
+
+                        @Override
+                        public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
+
+                        }
+
+                        @Override
+                        public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
+
+                        }
+                    });
+                    ConnectivityController.this.mqttClient = localMqttClient;
+                    updateConnectionState(ConnectionState.CONNECTED);
+
+                    Log.i(Logging.TAG, "Connected to MQTT broker: " + serverAddress);
+
+                    byte[] payload = new Date().toString().getBytes();
+                    MqttMessage mqttMessage = new MqttMessage(payload);
+                    try {
+                        String topic = application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_CONNECTED);
+                        localMqttClient.publish(topic, mqttMessage);
+                    } catch (MqttException e) {
+                        Log.e(Logging.TAG, e.toString());
+                    }
+                }
+
+                @Override
+                public void onFailure(IMqttToken iMqttToken, Throwable e) {
+                    // Handle connection errors.
+                    // TODO: To general?
+                    Log.e(Logging.TAG, e.toString());
+                    cleanupAfterDisconnect();
+                    updateConnectionState(ConnectionState.DISCONNECTED);
+                    connectionErrorSubject.onNext(e.toString());
+
+                }
+            });
         } catch (MqttException e) {
-            Log.e(Logging.TAG, e.toString());
+            e.printStackTrace();
         }
+
 
     }
 
@@ -202,7 +227,7 @@ public class ConnectivityController {
     private MqttConnectOptions getBrokerConnectionOptions() {
         MqttConnectOptions connectionOpts = new MqttConnectOptions();
         connectionOpts.setWill(application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_WILL),
-                getWillPayloadJson().getBytes(), 2, true);
+                getWillPayloadJson().getBytes(), 0, true);
         return connectionOpts;
     }
 
@@ -241,30 +266,33 @@ public class ConnectivityController {
             Log.e(Logging.TAG, e.toString());
         }
 
-        try {
-            mqttClientLock.acquire();
-        } catch (InterruptedException e) {
-            Log.e(Logging.TAG, e.toString());
-        }
 
         if (null != getMqttClient()) {
 
             try {
-                IMqttToken token = getMqttClient().disconnect(DISCONNECT_TIMEOUT);
-                token.waitForCompletion();
-                Log.i(Logging.TAG, "Disconnected from MQTT broker.");
+                getMqttClient().disconnect(this, new IMqttActionListener() {
+                    @Override
+                    public void onSuccess(IMqttToken iMqttToken) {
+                        cleanupAfterDisconnect();
+                        updateConnectionState(ConnectionState.DISCONNECTED);
+                    }
+
+                    @Override
+                    public void onFailure(IMqttToken iMqttToken, Throwable throwable) {
+                        cleanupAfterDisconnect();
+                        updateConnectionState(ConnectionState.DISCONNECTED);
+                    }
+                });
             } catch (MqttException e) {
                 Log.e(Logging.TAG, e.toString());
             }
 
+        } else {
+
+            // ASSUMPTION: if mqttClient is null, application realizes that it is disconnected.
+            cleanupAfterDisconnect();
+            updateConnectionState(ConnectionState.DISCONNECTED);
         }
-
-        // ASSUMPTION: if mqttClient is null, application realizes that it is disconnected.
-        mqttClient = null;
-
-        mqttClientLock.release();
-
-        updateConnectionState(ConnectionState.DISCONNECTED);
     }
 
     /**
@@ -297,3 +325,4 @@ public class ConnectivityController {
         return connectionState;
     }
 }
+

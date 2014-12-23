@@ -30,4 +30,5 @@ dependencies {
     compile 'io.reactivex:rxandroid:0.23.0'
     compile files('libs/org.eclipse.paho.android.service-1.0.1.jar')
     compile files('libs/org.eclipse.paho.client.mqttv3-1.0.1.jar')
+    compile 'com.getbase:floatingactionbutton:1.4.0'
 }
