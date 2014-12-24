@@ -16,15 +16,18 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.misc.Logging;
+import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
 import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogFragment;
 
@@ -111,7 +114,7 @@ public class MainActivity extends ActionBarActivity {
      * Test MQTT connection button.
      */
     @InjectView(R.id.btnTestMQTT)
-    Button btnTestMQTT;
+    FloatingActionButton btnTestMQTT;
 
 
     /**
@@ -142,6 +145,7 @@ public class MainActivity extends ActionBarActivity {
      * Menu.
      */
     private Menu menu;
+    private BrokerServiceClient brokerServiceClient;
 
 
     /**
@@ -235,10 +239,21 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // TODO: Refacor / use DI.
+        this.brokerServiceClient = new BrokerServiceClient(this.getAndroidApplication());
+
         setContentView(R.layout.activity_main);
 
         // Wire up event listeners.
         ButterKnife.inject(this);
+
+        // Setup event listener for test button.
+        btnTestMQTT.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onTestButtonClick();
+            }
+        });
 
         setSupportActionBar(toolbar);
         labelServerAddress.setText(getConnectivityController().getServerAddress());
@@ -276,10 +291,24 @@ public class MainActivity extends ActionBarActivity {
     }
 
     /**
+     * Handle clicks to test button.
+     */
+    private void onTestButtonClick() {
+        AsyncTask sendTestTask = new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] objects) {
+                brokerServiceClient.sendTest();
+                return null;
+            }
+        };
+        sendTestTask.execute();
+    }
+
+    /**
      * Handle activity resume.
      */
     @Override
-    public void onResume(){
+    public void onResume() {
         super.onResume();
         updateUIForConnectionState();
         try {
@@ -297,17 +326,18 @@ public class MainActivity extends ActionBarActivity {
 
     /**
      * Get color for connection state value.
+     *
      * @param connectionState Connection state to get color for.
      * @return Color for connection state.
      */
-    private int getColorForConnectionState(ConnectionState connectionState){
+    private int getColorForConnectionState(ConnectionState connectionState) {
         int colorId = R.color.color_connection_state_intermediate;
 
-        if (ConnectionState.CONNECTED == connectionState){
+        if (ConnectionState.CONNECTED == connectionState) {
             colorId = R.color.color_connection_state_connected;
         }
 
-        if (ConnectionState.DISCONNECTED == connectionState){
+        if (ConnectionState.DISCONNECTED == connectionState) {
             colorId = R.color.color_connection_state_disconnected;
         }
 
@@ -330,11 +360,12 @@ public class MainActivity extends ActionBarActivity {
 
     /**
      * Create options menu.
+     *
      * @param menu Menu instance for options inflate.
      * @return Operation handled.
      */
     @Override
-    public boolean onCreateOptionsMenu(Menu menu){
+    public boolean onCreateOptionsMenu(Menu menu) {
         this.menu = menu;
         getMenuInflater().inflate(R.menu.main, menu);
         updateUIForConnectionState();
@@ -343,12 +374,13 @@ public class MainActivity extends ActionBarActivity {
 
     /**
      * Handle menu options item select.
+     *
      * @param item Selected item.
      * @return Operation handled.
      */
     @Override
-    public boolean onOptionsItemSelected(MenuItem item){
-        switch(item.getItemId()){
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
             case R.id.action_connect_mqtt:
                 showConnectToMqttDialog();
                 break;

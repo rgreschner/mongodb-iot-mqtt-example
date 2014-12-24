@@ -11,11 +11,6 @@ import com.ragres.mongodb.iotexample.services.TelemetryService;
  */
 public class AndroidApplication extends Application {
 
-    public static final String SUBTOPIC_ACCELEROMETER = "/accelerometer";
-    public static final String SUBTOPIC_DEBUG = "/debug";
-    public static final String SUBTOPIC_CONNECTED = "/connected";
-    public static final String SUBTOPIC_LOCATION = "/location";
-
     /**
      * Device name.
      * ASSUMPTION: this is usable as MQTT identifier.
