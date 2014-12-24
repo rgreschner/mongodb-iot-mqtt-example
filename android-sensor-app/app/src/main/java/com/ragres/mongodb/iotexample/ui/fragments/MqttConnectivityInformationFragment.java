@@ -1,7 +1,6 @@
 package com.ragres.mongodb.iotexample.ui.fragments;
 
 
-
 import android.os.Bundle;
 import android.app.Fragment;
 import android.view.LayoutInflater;
@@ -10,7 +9,9 @@ import android.view.ViewGroup;
 
 import com.ragres.mongodb.iotexample.R;
 
-
+/**
+ * Fragment displaying MQTT connection information.
+ */
 public class MqttConnectivityInformationFragment extends Fragment {
 
     public MqttConnectivityInformationFragment() {

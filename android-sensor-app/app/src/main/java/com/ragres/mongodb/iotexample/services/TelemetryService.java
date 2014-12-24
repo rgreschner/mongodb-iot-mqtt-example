@@ -27,6 +27,8 @@ import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 
 /**
  * Service for gathering telemetry data.
+ * TODO: Gathering telemtry data on queue and sending
+ * it in bulk.
  */
 public class TelemetryService extends Service {
 
@@ -53,7 +55,6 @@ public class TelemetryService extends Service {
      * Handler for UI operations.
      */
     private Handler handler = new Handler(Looper.getMainLooper());
-
 
     /**
      * Android sensor manager.

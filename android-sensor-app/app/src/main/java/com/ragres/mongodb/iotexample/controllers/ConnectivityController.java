@@ -31,8 +31,8 @@ import rx.subjects.BehaviorSubject;
  */
 public class ConnectivityController {
 
-    public static final int DISCONNECT_TIMEOUT = 30 * 1000;
-    public static final int CONNECT_TIMEOUT = 30 * 1000;
+    public static final int DISCONNECT_TIMEOUT = 10 * 1000;
+    public static final int CONNECT_TIMEOUT = 10 * 1000;
     /**
      * Connection state.
      */
@@ -87,6 +87,7 @@ public class ConnectivityController {
 
     /**
      * Get default broker address.
+     *
      * @return Default MQTT broker address.
      */
     private String getDefaultBrokerAddress() {
@@ -116,7 +117,7 @@ public class ConnectivityController {
         return connectionStateChangedSubject;
     }
 
-    private void updateConnectionState(ConnectionState connectionState){
+    private void updateConnectionState(ConnectionState connectionState) {
         this.connectionState = connectionState;
         connectionStateChangedSubject.onNext(connectionState);
     }
@@ -161,7 +162,7 @@ public class ConnectivityController {
         final MqttAndroidClient localMqttClient = new MqttAndroidClient(context, serverAddress, clientId);
 
 
-            MqttConnectOptions connectionOpts = getBrokerConnectionOptions();
+        MqttConnectOptions connectionOpts = getBrokerConnectionOptions();
         try {
             localMqttClient.connect(connectionOpts, new IMqttActionListener() {
                 @Override
@@ -222,10 +223,12 @@ public class ConnectivityController {
 
     /**
      * Get connection options for broker client.
+     *
      * @return Connection options.
      */
     private MqttConnectOptions getBrokerConnectionOptions() {
         MqttConnectOptions connectionOpts = new MqttConnectOptions();
+        connectionOpts.setConnectionTimeout(CONNECT_TIMEOUT);
         connectionOpts.setWill(application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_WILL),
                 getWillPayloadJson().getBytes(), 0, true);
         return connectionOpts;
@@ -233,6 +236,7 @@ public class ConnectivityController {
 
     /**
      * Get JSON payload for will message.
+     *
      * @return
      */
     private String getWillPayloadJson() {
@@ -270,7 +274,7 @@ public class ConnectivityController {
         if (null != getMqttClient()) {
 
             try {
-                getMqttClient().disconnect(this, new IMqttActionListener() {
+                getMqttClient().disconnect(DISCONNECT_TIMEOUT, this, new IMqttActionListener() {
                     @Override
                     public void onSuccess(IMqttToken iMqttToken) {
                         cleanupAfterDisconnect();
@@ -311,6 +315,7 @@ public class ConnectivityController {
 
     /**
      * Set address of connected server.
+     *
      * @param serverAddress Address of connected server.
      */
     public void setServerAddress(String serverAddress) {
@@ -319,6 +324,7 @@ public class ConnectivityController {
 
     /**
      * Get connection state.
+     *
      * @return Connection state.
      */
     public ConnectionState getConnectionState() {

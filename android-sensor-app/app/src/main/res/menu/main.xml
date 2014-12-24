@@ -6,13 +6,11 @@
     <item
         android:id="@+id/action_connect_mqtt"
         android:title="Connect"
-        app:showAsAction="ifRoom"
-        />
+        app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_disconnect_mqtt"
         android:title="Disconnect"
-        app:showAsAction="ifRoom"
-        />
+        app:showAsAction="ifRoom" />
 
 
 </menu>

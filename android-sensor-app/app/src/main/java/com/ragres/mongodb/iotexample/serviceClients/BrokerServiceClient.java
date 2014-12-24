@@ -57,8 +57,9 @@ public class BrokerServiceClient {
 
     /**
      * Send MQTT message.
+     *
      * @param mqttMessage Message to send.
-     * @param topic Topic to publish message to.
+     * @param topic       Topic to publish message to.
      * @return True if successful, false if not.
      */
     private boolean sendMqttMessage(MqttMessage mqttMessage, String topic) {
@@ -80,8 +81,9 @@ public class BrokerServiceClient {
 
     /**
      * Send sensor data to broker.
+     *
      * @param sensorDataDTO Sensor data to send.
-     * @param subTopic Sensor data subtopic.
+     * @param subTopic      Sensor data subtopic.
      * @return True if successful, false if not.
      */
     public boolean sendSensorData(SensorDataDTO sensorDataDTO, String subTopic) {
@@ -92,6 +94,7 @@ public class BrokerServiceClient {
 
     /**
      * Send test message.
+     *
      * @return True if successful, false if not.
      */
     public boolean sendTest() {
