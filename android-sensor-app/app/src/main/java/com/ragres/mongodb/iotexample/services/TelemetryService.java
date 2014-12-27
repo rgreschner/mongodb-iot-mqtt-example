@@ -17,7 +17,8 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.ragres.mongodb.iotexample.AndroidApplication;
-import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.controllers.SendSensorDataController;
+import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
@@ -25,10 +26,12 @@ import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
+import rx.subjects.BehaviorSubject;
+
 /**
  * Service for gathering telemetry data.
- * TODO: Gathering telemtry data on queue and sending
- * it in bulk.
  */
 public class TelemetryService extends Service {
 
@@ -36,20 +39,17 @@ public class TelemetryService extends Service {
     public static final int LOCATION_PROVIDER_MIN_DISTANCE = 0;
 
     /**
+     * Observable for sensor data events.
+     */
+    private BehaviorSubject sensorDataObservable =
+            BehaviorSubject.create();
+
+
+    /**
      * Android application instance.
      */
     private AndroidApplication androidApplication;
 
-    /**
-     * Broker service client.
-     */
-    private BrokerServiceClient brokerServiceClient;
-
-    /**
-     * Is logging of sensor data enabled?
-     * If true, accelerometer data is written to log.
-     */
-    private static boolean LOG_SENSOR_DATA = false;
 
     /**
      * Handler for UI operations.
@@ -60,10 +60,33 @@ public class TelemetryService extends Service {
      * Android sensor manager.
      */
     private SensorManager sensorManager;
+
+
     /**
      * Accelerometer sensor.
      */
     private Sensor accelerometerSensor;
+
+    /**
+     * Location manager.
+     */
+    private LocationManager locationManager;
+
+    /**
+     * Thread for handling sensor data.
+     */
+    private Thread sensorThread;
+
+    /**
+     * Controller for sending sensor data.
+     */
+    private SendSensorDataController sendSensorDataController;
+
+    /**
+     * Broker service client.
+     */
+    private BrokerServiceClient brokerServiceClient;
+
 
     /**
      * Listener for accelerometer sensor data.
@@ -77,26 +100,10 @@ public class TelemetryService extends Service {
                 return;
             }
 
-            float x = event.values[0];
-            float y = event.values[1];
-            float z = event.values[2];
-
-            if (LOG_SENSOR_DATA) {
-                Log.v(Logging.TAG, "Accelerometer data: x=" + String.valueOf(x) +
-                        ", y=" + String.valueOf(y) + ", z=" + String.valueOf(z));
-            }
-
-            // ASSUMPTION: If mqttClient is != null, it is connected
-            // (as defined by connection handling code).
-            // TODO/DISCUSSION: methods from outer class are accessed without 'this'.
-            if (isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient()) {
-
-                AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
-                SensorDataDTO sensorDataDTO = SensorDataDTO.
-                        createWithPayload(accelerometerData);
-                brokerServiceClient.sendSensorData(sensorDataDTO, DeviceSubTopics.SUBTOPIC_ACCELEROMETER);
-            }
-
+            AccelerometerDataPayload accelerometerData = AccelerometerDataPayload.fromArray(event.values);
+            SensorDataDTO sensorDataDTO = SensorDataDTO.
+                    createWithPayload(accelerometerData);
+            sensorDataObservable.onNext(sensorDataDTO);
 
         }
 
@@ -114,15 +121,11 @@ public class TelemetryService extends Service {
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            if (isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient()) {
 
-                LocationDataPayload locationData = LocationDataPayload.fromLocation(location);
-                SensorDataDTO sensorDataDTO = SensorDataDTO.
-                        createWithPayload(locationData);
-
-                brokerServiceClient.sendSensorData(sensorDataDTO, DeviceSubTopics.SUBTOPIC_LOCATION);
-
-            }
+            LocationDataPayload locationData = LocationDataPayload.fromLocation(location);
+            SensorDataDTO sensorDataDTO = SensorDataDTO.
+                    createWithPayload(locationData);
+            sensorDataObservable.onNext(sensorDataDTO);
 
         }
 
@@ -142,11 +145,6 @@ public class TelemetryService extends Service {
         }
     };
 
-    /**
-     * Location manager.
-     */
-    private LocationManager locationManager;
-    private Thread sensorThread;
 
     /**
      * Public constructor.
@@ -165,7 +163,22 @@ public class TelemetryService extends Service {
         this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        this.sendSensorDataController = new SendSensorDataController(androidApplication,
+                sensorDataObservable, brokerServiceClient);
+
+        this.androidApplication.getConnectivityController().getConnectionStateChangedSubject()
+                .observeOn(Schedulers.newThread())
+                .subscribe(new Action1<ConnectionState>() {
+
+                    @Override
+                    public void call(ConnectionState connectionState) {
+                        if (ConnectionState.CONNECTED.equals(connectionState)) {
+                            brokerServiceClient.sendConnected();
+                        }
+                    }
+                });
     }
+
 
     /**
      * Start service.
@@ -180,6 +193,7 @@ public class TelemetryService extends Service {
 
         if (null == sensorThread || !sensorThread.isAlive()) {
             sensorThread = new Thread(new Runnable() {
+
                 /**
                  * Run sensor listener operations in own thread so
                  * service thread gets not blocked.
@@ -188,12 +202,18 @@ public class TelemetryService extends Service {
                 public void run() {
                     Looper.prepare();
                     Handler handler = new Handler();
+
+                    sendSensorDataController.unsubscribe();
+
                     sensorManager.registerListener(accelerometerListener, accelerometerSensor,
                             SensorManager.SENSOR_DELAY_NORMAL, handler);
                     locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
                             LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
                     locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
                             LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
+
+                    sendSensorDataController.subscribe();
+
                     Log.i(Logging.TAG, "TelemetryService was started.");
                     Looper.loop();
                 }
@@ -215,28 +235,12 @@ public class TelemetryService extends Service {
         return null;
     }
 
-    /**
-     * Get connectivity controller instance.
-     *
-     * @return Connectivity controller instance.
-     */
-    public ConnectivityController getConnectivityController() {
-        return androidApplication.getConnectivityController();
-    }
-
-    /**
-     * Is transmission of sensor data over MQTT
-     * enabled?
-     */
-    private boolean isSendSensorDataEnabled() {
-        return androidApplication.isSendSensorDataEnabled();
-    }
-
 
     /**
      * Destroy service.
      */
     public void onDestroy() {
+        sendSensorDataController.unsubscribe();
         if (null != sensorThread && sensorThread.isAlive()) {
             sensorThread.interrupt();
             sensorThread = null;
