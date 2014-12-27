@@ -22,11 +22,16 @@ import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
-import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
+
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import rx.Subscription;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import rx.subjects.BehaviorSubject;
 
@@ -41,8 +46,7 @@ public class TelemetryService extends Service {
     /**
      * Observable for sensor data events.
      */
-    private BehaviorSubject sensorDataObservable =
-            BehaviorSubject.create();
+    private BehaviorSubject sensorDataObservable;
 
 
     /**
@@ -86,6 +90,13 @@ public class TelemetryService extends Service {
      * Broker service client.
      */
     private BrokerServiceClient brokerServiceClient;
+
+
+    /**
+     * Subscription for logging of sensor data count in last
+     * second.
+     */
+    private Subscription sensorDataInLastSecondSubscription;
 
 
     /**
@@ -159,6 +170,7 @@ public class TelemetryService extends Service {
     @Override
     public void onCreate() {
         this.androidApplication = (AndroidApplication) this.getApplication();
+        this.sensorDataObservable = androidApplication.getSensorDataObservable();
         this.brokerServiceClient = new BrokerServiceClient(androidApplication);
         this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -213,6 +225,8 @@ public class TelemetryService extends Service {
                             LOCATION_PROVIDER_UPDATE_INTERVAL, LOCATION_PROVIDER_MIN_DISTANCE, locationListener);
 
                     sendSensorDataController.subscribe();
+                    clearSensorDataInLastSecondSubscription();
+                    subscribeSensorDataInLastSecond();
 
                     Log.i(Logging.TAG, "TelemetryService was started.");
                     Looper.loop();
@@ -222,6 +236,51 @@ public class TelemetryService extends Service {
         }
 
         return Service.START_NOT_STICKY;
+    }
+
+    /**
+     * Subscribe on data stream logging the
+     * amount of sensor data in the last second.
+     */
+    private void subscribeSensorDataInLastSecond() {
+        sensorDataInLastSecondSubscription = sensorDataObservable
+                .map(new Func1<SensorDataDTO, Integer>() {
+
+                    @Override
+                    public Integer call(SensorDataDTO sensorDataDTO) {
+                        return null == sensorDataDTO ? 0 : 1;
+                    }
+                }).buffer(1, TimeUnit.SECONDS).map(new Func1<List<Integer>, Integer>() {
+
+                    @Override
+                    public Integer call(List<Integer> list) {
+                        int sum = 0;
+                        for (Integer item : list) {
+                            if (null == item)
+                                continue;
+                            sum += item.intValue();
+                        }
+                        list.clear();
+                        return sum;
+                    }
+                }).observeOn(Schedulers.computation())
+                .subscribe(new Action1<Integer>() {
+                    @Override
+                    public void call(Integer count) {
+                        Log.v(Logging.TAG, "Count of sensor data in last second: " +
+                                String.valueOf(count));
+                    }
+                });
+    }
+
+    /**
+     * Unsubscribe from sensor data count stream.
+     */
+    private void clearSensorDataInLastSecondSubscription() {
+        if (null != sensorDataInLastSecondSubscription) {
+            sensorDataInLastSecondSubscription.unsubscribe();
+            sensorDataInLastSecondSubscription = null;
+        }
     }
 
     /**
@@ -241,6 +300,7 @@ public class TelemetryService extends Service {
      */
     public void onDestroy() {
         sendSensorDataController.unsubscribe();
+        clearSensorDataInLastSecondSubscription();
         if (null != sensorThread && sensorThread.isAlive()) {
             sensorThread.interrupt();
             sensorThread = null;
