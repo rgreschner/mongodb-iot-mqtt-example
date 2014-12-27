@@ -6,6 +6,8 @@ import android.content.Intent;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.services.TelemetryService;
 
+import rx.subjects.BehaviorSubject;
+
 /**
  * Android application class.
  */
@@ -16,6 +18,13 @@ public class AndroidApplication extends Application {
      * ASSUMPTION: this is usable as MQTT identifier.
      */
     private String deviceName;
+
+    /**
+     * Observable for sensor data events.
+     */
+    private BehaviorSubject sensorDataObservable =
+            BehaviorSubject.create();
+
     /**
      * Connectivity controller.
      */
@@ -84,5 +93,12 @@ public class AndroidApplication extends Application {
      */
     public String getDeviceName() {
         return deviceName;
+    }
+
+    /**
+     * Observable for sensor data events.
+     */
+    public BehaviorSubject getSensorDataObservable() {
+        return sensorDataObservable;
     }
 }
