@@ -16,6 +16,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
 
+import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.SendSensorDataController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
@@ -171,12 +172,13 @@ public class TelemetryService extends Service {
     public void onCreate() {
         this.androidApplication = (AndroidApplication) this.getApplication();
         this.sensorDataObservable = androidApplication.getSensorDataObservable();
-        this.brokerServiceClient = new BrokerServiceClient(androidApplication);
+        this.brokerServiceClient = androidApplication.getObjectGraph().get(BrokerServiceClient.class);
         this.sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         this.sendSensorDataController = new SendSensorDataController(androidApplication,
-                sensorDataObservable, brokerServiceClient);
+                sensorDataObservable, brokerServiceClient, androidApplication.getObjectGraph()
+                .get(Gson.class));
 
         this.androidApplication.getConnectivityController().getConnectionStateChangedSubject()
                 .observeOn(Schedulers.newThread())

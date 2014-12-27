@@ -239,8 +239,8 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // TODO: Refacor / use DI.
-        this.brokerServiceClient = new BrokerServiceClient(this.getAndroidApplication());
+        this.brokerServiceClient = this.getAndroidApplication().getObjectGraph()
+                .get(BrokerServiceClient.class);
 
         setContentView(R.layout.activity_main);
 
