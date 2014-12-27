@@ -193,14 +193,6 @@ public class ConnectivityController {
 
                     Log.i(Logging.TAG, "Connected to MQTT broker: " + serverAddress);
 
-                    byte[] payload = new Date().toString().getBytes();
-                    MqttMessage mqttMessage = new MqttMessage(payload);
-                    try {
-                        String topic = application.getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_CONNECTED);
-                        localMqttClient.publish(topic, mqttMessage);
-                    } catch (MqttException e) {
-                        Log.e(Logging.TAG, e.toString());
-                    }
                 }
 
                 @Override

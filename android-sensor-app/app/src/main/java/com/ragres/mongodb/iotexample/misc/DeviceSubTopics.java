@@ -9,4 +9,5 @@ public class DeviceSubTopics {
     public static final String SUBTOPIC_CONNECTED = "/connected";
     public static final String SUBTOPIC_LOCATION = "/location";
     public static final String SUBTOPIC_WILL = "/will";
+    public static final String SUBTOPIC_TEST = "/test";
 }

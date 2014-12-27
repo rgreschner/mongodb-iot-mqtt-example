@@ -5,7 +5,10 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.domain.dto.ConnectedDTO;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
+import com.ragres.mongodb.iotexample.domain.dto.TestMessageDTO;
+import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
@@ -98,9 +101,22 @@ public class BrokerServiceClient {
      * @return True if successful, false if not.
      */
     public boolean sendTest() {
-        String jsonData = String.valueOf(new Date());
+        TestMessageDTO testMessageDTO = new TestMessageDTO();
+        String topic = getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_TEST);
+        String jsonData = gson.toJson(testMessageDTO);
         MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
-        return sendMqttMessage(mqttMessage, getDeviceSubTopic("/test"));
+        return sendMqttMessage(mqttMessage, topic);
     }
 
+    /**
+     * Send connected message.
+     * @return True if successful, false if not.
+     */
+    public boolean sendConnected() {
+        ConnectedDTO connectedDTO = new ConnectedDTO();
+        String topic = getDeviceSubTopic(DeviceSubTopics.SUBTOPIC_CONNECTED);
+        String jsonData = gson.toJson(connectedDTO);
+        MqttMessage mqttMessage = new MqttMessage(jsonData.getBytes());
+        return sendMqttMessage(mqttMessage, topic);
+    }
 }
