@@ -19,6 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Inject;
+
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscription;
@@ -54,7 +56,7 @@ public class SendSensorDataController {
     /**
      * JSON serializer.
      */
-    private Gson gson = new Gson();
+    private Gson gson;
 
     /**
      * Broker service client.
@@ -92,11 +94,13 @@ public class SendSensorDataController {
     /**
      * Public constructor.
      */
-    public SendSensorDataController(AndroidApplication androidApplication, BehaviorSubject sensorDataObservable, BrokerServiceClient brokerServiceClient) {
+    @Inject
+    public SendSensorDataController(AndroidApplication androidApplication, BehaviorSubject sensorDataObservable, BrokerServiceClient brokerServiceClient, Gson gson) {
         this.androidApplication = androidApplication;
         this.sensorDataObservable = sensorDataObservable;
         this.sendDataScheduler = Schedulers.from(sendDataExecutor);
         this.brokerServiceClient = brokerServiceClient;
+        this.gson = gson;
 
     }
 

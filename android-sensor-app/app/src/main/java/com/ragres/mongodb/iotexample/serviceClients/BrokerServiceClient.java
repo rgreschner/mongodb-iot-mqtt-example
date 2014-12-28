@@ -17,6 +17,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 import java.util.Date;
 
+import javax.inject.Inject;
+
 /**
  * Service client for broker connectivity.
  */
@@ -30,13 +32,15 @@ public class BrokerServiceClient {
     /**
      * JSON serializer.
      */
-    private Gson gson = new Gson();
+    private Gson gson;
 
     /**
      * Public constructor.
      */
-    public BrokerServiceClient(AndroidApplication androidApplication) {
+    @Inject
+    public BrokerServiceClient(AndroidApplication androidApplication, Gson gson) {
         this.androidApplication = androidApplication;
+        this.gson = gson;
     }
 
     /**

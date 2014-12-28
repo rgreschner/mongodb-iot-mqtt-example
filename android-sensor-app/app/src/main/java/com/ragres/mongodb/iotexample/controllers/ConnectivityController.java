@@ -24,6 +24,8 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import java.util.Date;
 import java.util.concurrent.Semaphore;
 
+import javax.inject.Inject;
+
 import rx.subjects.BehaviorSubject;
 
 /**
@@ -56,7 +58,7 @@ public class ConnectivityController {
     /**
      * JSON serializer.
      */
-    private Gson gson = new Gson();
+    private Gson gson;
 
 
     /**
@@ -79,10 +81,12 @@ public class ConnectivityController {
      *
      * @param application Android application instance.
      */
-    public ConnectivityController(AndroidApplication application) {
+    @Inject
+    public ConnectivityController(AndroidApplication application, Gson gson) {
         this.application = application;
         this.context = application.getApplicationContext();
         this.serverAddress = getDefaultBrokerAddress();
+        this.gson = gson;
     }
 
     /**

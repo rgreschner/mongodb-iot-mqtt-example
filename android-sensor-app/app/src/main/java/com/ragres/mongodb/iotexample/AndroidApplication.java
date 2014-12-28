@@ -4,14 +4,24 @@ import android.app.Application;
 import android.content.Intent;
 
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.modules.MainModule;
 import com.ragres.mongodb.iotexample.services.TelemetryService;
 
+import javax.inject.Inject;
+
+import dagger.ObjectGraph;
 import rx.subjects.BehaviorSubject;
 
 /**
  * Android application class.
  */
 public class AndroidApplication extends Application {
+
+    public ObjectGraph getObjectGraph() {
+        return objectGraph;
+    }
+
+    private ObjectGraph objectGraph;
 
     /**
      * Device name.
@@ -53,9 +63,12 @@ public class AndroidApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
+        // Initialize dagger dependency container.
+        objectGraph = ObjectGraph.create(new MainModule(this));
+
         this.deviceName = android.os.Build.MODEL;
 
-        this.connectivityController = new ConnectivityController(this);
+        this.connectivityController = objectGraph.get(ConnectivityController.class);
 
         Intent startServiceIntent = new Intent(this, TelemetryService.class);
         this.startService(startServiceIntent);
@@ -101,4 +114,6 @@ public class AndroidApplication extends Application {
     public BehaviorSubject getSensorDataObservable() {
         return sensorDataObservable;
     }
+
+
 }

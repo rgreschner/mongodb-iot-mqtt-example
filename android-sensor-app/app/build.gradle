@@ -30,7 +30,12 @@ dependencies {
     compile 'com.android.support:appcompat-v7:21.0.+'
     compile 'com.google.code.gson:gson:2.3'
     compile 'io.reactivex:rxandroid:0.23.0'
+    compile 'com.squareup.dagger:dagger:+'
+    compile 'com.getbase:floatingactionbutton:1.4.0'
+
     compile files('libs/org.eclipse.paho.android.service-1.0.1.jar')
     compile files('libs/org.eclipse.paho.client.mqttv3-1.0.1.jar')
-    compile 'com.getbase:floatingactionbutton:1.4.0'
+    compile files('libs/mpandroidchartlibrary-1-7-4.jar')
+
+    provided 'com.squareup.dagger:dagger-compiler:+'
 }
