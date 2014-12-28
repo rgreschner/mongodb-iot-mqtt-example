@@ -35,6 +35,7 @@ dependencies {
 
     compile files('libs/org.eclipse.paho.android.service-1.0.1.jar')
     compile files('libs/org.eclipse.paho.client.mqttv3-1.0.1.jar')
+    compile files('libs/mpandroidchartlibrary-1-7-4.jar')
 
     provided 'com.squareup.dagger:dagger-compiler:+'
 }

@@ -4,47 +4,34 @@ import android.app.AlertDialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.github.mikephil.charting.charts.LineChart;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
-import com.ragres.mongodb.iotexample.misc.Logging;
-import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
 import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogFragment;
 
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import butterknife.OnClick;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
-import rx.schedulers.Schedulers;
-import rx.subjects.BehaviorSubject;
 
 /**
  * Application main UI.
@@ -117,6 +104,9 @@ public class MainActivity extends ActionBarActivity {
     FloatingActionButton btnTestMQTT;
 
 
+    @InjectView(R.id.chart)
+    LineChart lineChart;
+
     /**
      * Label for connection status.
      */
@@ -131,11 +121,6 @@ public class MainActivity extends ActionBarActivity {
 
 
     /**
-     * Location manager.
-     */
-    private LocationManager locationManager;
-
-    /**
      * Toolbar.
      */
     @InjectView(R.id.toolbar)
@@ -145,8 +130,9 @@ public class MainActivity extends ActionBarActivity {
      * Menu.
      */
     private Menu menu;
-    private BrokerServiceClient brokerServiceClient;
 
+
+    private MainActivityPresenter mainActivityPresenter;
 
     /**
      * Get application instance.
@@ -198,37 +184,8 @@ public class MainActivity extends ActionBarActivity {
     }
 
 
-    /**
-     * Show connect to MQTT broker dialog.
-     */
-    private void showConnectToMqttDialog() {
-        FragmentTransaction ft = getFragmentManager().beginTransaction();
-        Fragment prev = getFragmentManager().findFragmentByTag("dialog");
-        if (null != prev) {
-            ft.remove(prev);
-        }
-        ft.addToBackStack(null);
 
 
-        DialogFragment newFragment = ConnectMqttDialogFragment.newInstance();
-        newFragment.show(ft, "dialog");
-    }
-
-    /**
-     * Disconnect from MQTT broker.
-     */
-    private void disconnectFromServer() {
-
-        AsyncTask disconnectTask = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                getConnectivityController().disconnectFromServer();
-                return null;
-            }
-        };
-        disconnectTask.execute();
-
-    }
 
     /**
      * On activity create.
@@ -239,8 +196,6 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        this.brokerServiceClient = this.getAndroidApplication().getObjectGraph()
-                .get(BrokerServiceClient.class);
 
         setContentView(R.layout.activity_main);
 
@@ -251,58 +206,34 @@ public class MainActivity extends ActionBarActivity {
         btnTestMQTT.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                onTestButtonClick();
+                mainActivityPresenter.onTestButtonClick();
             }
         });
 
         setSupportActionBar(toolbar);
+
         labelServerAddress.setText(getConnectivityController().getServerAddress());
 
-        this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-        BehaviorSubject<ConnectionState> connectionStateChangedSubject = getConnectivityController().
-                getConnectionStateChangedSubject();
+        lineChart.setDrawLegend(false);
+        lineChart.setTouchEnabled(false);
+        lineChart.setHighlightEnabled(false);
+        lineChart.setDescription("");
 
-        // Handle UI logic for connection state change.
-        connectionStateChangedSubject
+        mainActivityPresenter = getAndroidApplication().getObjectGraph().get(MainActivityPresenter.class);
+
+        mainActivityPresenter.onCreate();
+        mainActivityPresenter.getUpdateUIForConnectionStateObservable()
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1<ConnectionState>() {
+                .subscribe(new Action1() {
                     @Override
-                    public void call(ConnectionState connectionState) {
+                    public void call(Object o) {
                         updateUIForConnectionState();
                     }
                 });
-
-        // Handle business logic for connection state change.
-        connectionStateChangedSubject
-                .observeOn(Schedulers.immediate())
-                .subscribe(new Action1<ConnectionState>() {
-                    @Override
-                    public void call(ConnectionState connectionState) {
-                        if (ConnectionState.DISCONNECTING == connectionState) {
-                            getAndroidApplication().setSendSensorData(false);
-                        }
-                        if (ConnectionState.CONNECTED == connectionState) {
-                            getAndroidApplication().setSendSensorData(true);
-                        }
-                    }
-                });
-
+        mainActivityPresenter.setUpLineChart(lineChart);
     }
 
-    /**
-     * Handle clicks to test button.
-     */
-    private void onTestButtonClick() {
-        AsyncTask sendTestTask = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                brokerServiceClient.sendTest();
-                return null;
-            }
-        };
-        sendTestTask.execute();
-    }
 
     /**
      * Handle activity resume.
@@ -311,16 +242,7 @@ public class MainActivity extends ActionBarActivity {
     public void onResume() {
         super.onResume();
         updateUIForConnectionState();
-        try {
-            boolean isGPSEnabled = locationManager
-                    .isProviderEnabled(LocationManager.GPS_PROVIDER);
-            Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
-            if (!isGPSEnabled) {
-                //showLocationSettingsAlert();
-            }
-        } catch (Exception ex0) {
-            Log.e(Logging.TAG, "Error: " + ex0.toString());
-        }
+        mainActivityPresenter.checkAndEnableGps();
 
     }
 
@@ -382,10 +304,10 @@ public class MainActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_connect_mqtt:
-                showConnectToMqttDialog();
+                mainActivityPresenter.showConnectToMqttDialog(this);
                 break;
             case R.id.action_disconnect_mqtt:
-                disconnectFromServer();
+                mainActivityPresenter.disconnectFromServer();
                 break;
             default:
                 break;

@@ -23,6 +23,39 @@
             android:name="com.ragres.mongodb.iotexample.ui.fragments.MqttConnectivityInformationFragment"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
+            android:orientation="vertical">
+
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:orientation="vertical"
+                android:layout_weight="5"
+                android:paddingLeft="4dp"
+                android:paddingRight="8dp"
+                >
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/chart"
+                    android:layout_width="fill_parent"
+                    android:layout_height="fill_parent"
+                    />
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:orientation="vertical"
+                android:layout_weight="5"/>
+
+         </LinearLayout>
+
     </LinearLayout>
 
 
