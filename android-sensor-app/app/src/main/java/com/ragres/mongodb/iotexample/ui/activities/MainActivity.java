@@ -1,12 +1,8 @@
 package com.ragres.mongodb.iotexample.ui.activities;
 
 import android.app.AlertDialog;
-import android.app.DialogFragment;
-import android.app.Fragment;
-import android.app.FragmentTransaction;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
@@ -20,10 +16,8 @@ import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.github.mikephil.charting.charts.LineChart;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
-import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
-import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogFragment;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -131,7 +125,9 @@ public class MainActivity extends ActionBarActivity {
      */
     private Menu menu;
 
-
+    /**
+     * Activity presenter.
+     */
     private MainActivityPresenter mainActivityPresenter;
 
     /**
@@ -144,21 +140,11 @@ public class MainActivity extends ActionBarActivity {
         return application;
     }
 
-    /**
-     * Get connectivity controller instance.
-     *
-     * @return Connectivity controller instance.
-     */
-    private ConnectivityController getConnectivityController() {
-        ConnectivityController connectivityController = getAndroidApplication().
-                getConnectivityController();
-        return connectivityController;
-    }
 
     /**
      * Function to show settings alert dialog
      */
-    public void showLocationSettingsAlert() {
+    public void showLocationSettingsDialog() {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
 
         alertDialog.setTitle(getString(R.string.show_location_settings_dialog_title));
@@ -183,10 +169,6 @@ public class MainActivity extends ActionBarActivity {
         alertDialog.show();
     }
 
-
-
-
-
     /**
      * On activity create.
      *
@@ -194,12 +176,13 @@ public class MainActivity extends ActionBarActivity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
 
-
+        // Setup view content.
         setContentView(R.layout.activity_main);
 
-        // Wire up event listeners.
+        // Do view injection.
         ButterKnife.inject(this);
 
         // Setup event listener for test button.
@@ -212,26 +195,51 @@ public class MainActivity extends ActionBarActivity {
 
         setSupportActionBar(toolbar);
 
-        labelServerAddress.setText(getConnectivityController().getServerAddress());
+        setUpLineChart();
+        setUpPresenter();
 
+    }
 
+    private void setUpPresenter() {
+        mainActivityPresenter = getAndroidApplication().getObjectGraph().get(MainActivityPresenter.class);
+
+        mainActivityPresenter.onCreate();
+
+        mainActivityPresenter.getUpdateUIForConnectionStateObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<ConnectionState>() {
+                    @Override
+                    public void call(ConnectionState value) {
+                        updateUIForConnectionState(value);
+                    }
+                });
+
+        mainActivityPresenter.getServerAddressObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<String>() {
+                    @Override
+                    public void call(String value) {
+                        labelServerAddress.setText(value);
+                    }
+                });
+
+        mainActivityPresenter.getShowLocationSettingsDialogObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1() {
+                    @Override
+                    public void call(Object value) {
+                        showLocationSettingsDialog();
+                    }
+                });
+
+        mainActivityPresenter.setUpLineChart(lineChart);
+    }
+
+    private void setUpLineChart() {
         lineChart.setDrawLegend(false);
         lineChart.setTouchEnabled(false);
         lineChart.setHighlightEnabled(false);
         lineChart.setDescription("");
-
-        mainActivityPresenter = getAndroidApplication().getObjectGraph().get(MainActivityPresenter.class);
-
-        mainActivityPresenter.onCreate();
-        mainActivityPresenter.getUpdateUIForConnectionStateObservable()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Action1() {
-                    @Override
-                    public void call(Object o) {
-                        updateUIForConnectionState();
-                    }
-                });
-        mainActivityPresenter.setUpLineChart(lineChart);
     }
 
 
@@ -241,9 +249,8 @@ public class MainActivity extends ActionBarActivity {
     @Override
     public void onResume() {
         super.onResume();
-        updateUIForConnectionState();
+        mainActivityPresenter.forceUpdateUIForConnectionState();
         mainActivityPresenter.checkAndEnableGps();
-
     }
 
     /**
@@ -270,8 +277,7 @@ public class MainActivity extends ActionBarActivity {
     /**
      * Refresh UI components for connection states.
      */
-    private void updateUIForConnectionState() {
-        ConnectionState connectionState = getConnectivityController().getConnectionState();
+    private void updateUIForConnectionState(ConnectionState connectionState) {
         setButtonsEnabledForConnectionState(connectionState);
         labelConnectionStatusValue.setText(connectionState.toString());
 
@@ -290,7 +296,7 @@ public class MainActivity extends ActionBarActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         this.menu = menu;
         getMenuInflater().inflate(R.menu.main, menu);
-        updateUIForConnectionState();
+        mainActivityPresenter.forceUpdateUIForConnectionState();
         return true;
     }
 
@@ -343,7 +349,7 @@ public class MainActivity extends ActionBarActivity {
                     .setVisible(buttonStates.isDisconnectToServerVisible());
         }
 
-        labelServerAddress.setText(getConnectivityController().getServerAddress());
+
     }
 
 

@@ -8,6 +8,7 @@ import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.activities.MainActivityPresenter;
+import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogPresenter;
 
 
 import javax.inject.Singleton;
@@ -25,6 +26,7 @@ import dagger.Provides;
                 AndroidApplication.class,
                 BrokerServiceClient.class,
                 ConnectivityController.class,
+                ConnectMqttDialogPresenter.class,
                 LocationManager.class,
                 MainActivityPresenter.class,
                 Gson.class,
@@ -70,6 +72,13 @@ public class MainModule {
         return new ConnectivityController(
                 androidApplication.getObjectGraph().get(AndroidApplication.class),
                 androidApplication.getObjectGraph().get(Gson.class));
+
+    }
+
+    @Provides
+    public ConnectMqttDialogPresenter provideConnectMqttDialogPresenter() {
+        return new ConnectMqttDialogPresenter(
+                androidApplication.getObjectGraph().get(ConnectivityController.class));
 
     }
 
