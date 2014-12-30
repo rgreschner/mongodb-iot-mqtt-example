@@ -39,6 +39,15 @@ public class MainActivityPresenter {
 
     public static final DateFormat FORMAT_DATE_HOUR = new SimpleDateFormat("HH:mm:ss");
 
+    /**
+     * Observable for server address text.
+     */
+    private BehaviorSubject<String> serverAddressObservable = BehaviorSubject.create();
+
+    /**
+     * Observable for display of location settings dialog.
+     */
+    private BehaviorSubject showLocationSettingsDialogObservable = BehaviorSubject.create();
 
     /**
      * Android application.
@@ -51,16 +60,16 @@ public class MainActivityPresenter {
     private BrokerServiceClient brokerServiceClient;
 
     /**
-     * Observable observing connection state changes for UI.
+     * Observable for connection state changes in UI.
      */
-    private BehaviorSubject updateUIForConnectionStateObservable = BehaviorSubject.create();
+    private BehaviorSubject<ConnectionState> updateUIForConnectionStateObservable = BehaviorSubject.create();
 
     /**
      * Connectivity controller.
      */
     private ConnectivityController connectivityController;
 
-    /***
+    /**
      * Queued sensor data in line chart.
      */
     private Queue<Entry> queuedSensorChartEntries = new ArrayQueue<>(7);
@@ -113,6 +122,7 @@ public class MainActivityPresenter {
 
     /**
      * Set up line chart.
+     *
      * @param lineChart Line chart to set up.
      */
     public void setUpLineChart(LineChart lineChart) {
@@ -163,9 +173,7 @@ public class MainActivityPresenter {
                 .subscribe(new Action1<Integer>() {
                     @Override
                     public void call(Integer count) {
-
                         updateSensorDataChart(count);
-
                     }
                 });
 
@@ -173,6 +181,7 @@ public class MainActivityPresenter {
 
     /**
      * Update sensor chart data for last sensor values.
+     *
      * @param count Count of sensor data in last second.
      */
     private void updateSensorDataChart(Integer count) {
@@ -228,17 +237,24 @@ public class MainActivityPresenter {
             Log.i(Logging.TAG, "isGPSEnabled: " + String.valueOf(isGPSEnabled));
             if (!isGPSEnabled) {
                 // TODO: Enable again.
-                //showLocationSettingsAlert();
+                //showLocationSettingsDialog();
             }
         } catch (Exception ex0) {
             Log.e(Logging.TAG, "Error: " + ex0.toString());
         }
     }
 
+    private void showLocationSettingsDialog() {
+        showLocationSettingsDialogObservable.onNext(null);
+    }
+
     /**
      * On activity create.
      */
     public void onCreate() {
+
+        serverAddressObservable.onNext(connectivityController.getServerAddress());
+
         BehaviorSubject<ConnectionState> connectionStateChangedSubject = connectivityController.
                 getConnectionStateChangedSubject();
 
@@ -270,21 +286,23 @@ public class MainActivityPresenter {
      * Update UI for new connection state.
      */
     private void updateUIForConnectionState() {
-        getUpdateUIForConnectionStateObservable().onNext(null);
+        updateUIForConnectionStateObservable.onNext(connectivityController.getConnectionState());
+        serverAddressObservable.onNext(connectivityController.getServerAddress());
     }
 
     /**
      * Get UI Connection State Update observable.
+     *
      * @return UI Connection State Update observable.
      */
-    public BehaviorSubject getUpdateUIForConnectionStateObservable() {
+    public BehaviorSubject<ConnectionState> getUpdateUIForConnectionStateObservable() {
         return updateUIForConnectionStateObservable;
     }
 
     /**
      * Show connect to MQTT broker dialog.
-     * @param mainActivity
-     * TODO: Remove necessity to need activity as parameter.
+     *
+     * @param mainActivity TODO: Remove necessity to need activity as parameter.
      */
     public void showConnectToMqttDialog(MainActivity mainActivity) {
         FragmentTransaction ft = mainActivity.getFragmentManager().beginTransaction();
@@ -313,5 +331,17 @@ public class MainActivityPresenter {
         };
         disconnectTask.execute();
 
+    }
+
+    public BehaviorSubject<String> getServerAddressObservable() {
+        return serverAddressObservable;
+    }
+
+    public BehaviorSubject getShowLocationSettingsDialogObservable() {
+        return showLocationSettingsDialogObservable;
+    }
+
+    public void forceUpdateUIForConnectionState() {
+        updateUIForConnectionState();
     }
 }

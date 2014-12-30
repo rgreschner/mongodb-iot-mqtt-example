@@ -14,8 +14,13 @@ import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 
+import java.util.Objects;
+
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
 
 /**
  * MQTT Broker Connection Dialog.
@@ -28,6 +33,13 @@ public class ConnectMqttDialogFragment extends DialogFragment {
     @InjectView(R.id.inputServerAddress)
     EditText inputServerAddress;
 
+    /**
+     * Dialog presenter.
+     */
+    private ConnectMqttDialogPresenter connectMqttDialogPresenter;
+    private Subscription getServerAddressTextObservableSubscription;
+    private Subscription getDismissDialogObservableSubscription;
+
 
     /**
      * Get application instance.
@@ -37,17 +49,6 @@ public class ConnectMqttDialogFragment extends DialogFragment {
     private AndroidApplication getAndroidApplication() {
         AndroidApplication application = (AndroidApplication) this.getActivity().getApplication();
         return application;
-    }
-
-    /**
-     * Get connectivity controller instance.
-     *
-     * @return Connectivity controller instance.
-     */
-    private ConnectivityController getConnectivityController() {
-        ConnectivityController connectivityController = getAndroidApplication().
-                getConnectivityController();
-        return connectivityController;
     }
 
     /**
@@ -80,7 +81,26 @@ public class ConnectMqttDialogFragment extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_connect_mqtt, null);
         ButterKnife.inject(this, view);
 
-        inputServerAddress.setText(getConnectivityController().getServerAddress());
+        connectMqttDialogPresenter = getAndroidApplication().getObjectGraph()
+                .get(ConnectMqttDialogPresenter.class);
+
+        getServerAddressTextObservableSubscription = connectMqttDialogPresenter.getServerAddressTextObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<String>() {
+                    @Override
+                    public void call(String value) {
+                        inputServerAddress.setText(value);
+                    }
+                });
+        getDismissDialogObservableSubscription = connectMqttDialogPresenter.getDismissDialogObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1() {
+                    @Override
+                    public void call(Object value) {
+                        getDialog().dismiss();
+                    }
+                });
+        connectMqttDialogPresenter.onCreateDialog();
 
         builder.setView(view);
 
@@ -92,24 +112,29 @@ public class ConnectMqttDialogFragment extends DialogFragment {
      * Handle click on cancel button.
      */
     private void onCancelBtnClick() {
-        this.getDialog().dismiss();
+        connectMqttDialogPresenter.cancel();
     }
 
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (null != getServerAddressTextObservableSubscription) {
+            getServerAddressTextObservableSubscription.unsubscribe();
+            getServerAddressTextObservableSubscription = null;
+        }
+        if (null != getDismissDialogObservableSubscription) {
+            getDismissDialogObservableSubscription.unsubscribe();
+            getDismissDialogObservableSubscription = null;
+        }
+    }
 
     /**
      * Handle click on connect button.
      */
     public void onConnectToServerBtnClick() {
         final String serverAddress = inputServerAddress.getText().toString();
-
-        AsyncTask connectTask = new AsyncTask() {
-            @Override
-            protected Object doInBackground(Object[] objects) {
-                getConnectivityController().connectToServer(serverAddress);
-                return null;
-            }
-        };
-        connectTask.execute();
+        connectMqttDialogPresenter.connectToServer(serverAddress);
     }
 
     /**
