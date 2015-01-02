@@ -14,5 +14,6 @@
     <string name="show_location_settings_dialog_title">Enable GPS</string>
     <string name="show_location_settings_dialog_okay">Settings</string>
     <string name="dialog_connect_mqtt_title">MQTT Broker</string>
+    <string name="dialog_about_title">About</string>
 
 </resources>

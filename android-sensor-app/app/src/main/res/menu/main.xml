@@ -6,10 +6,12 @@
     <item
         android:id="@+id/action_connect_mqtt"
         android:title="Connect"
+        android:icon="@drawable/ab_connect"
         app:showAsAction="ifRoom" />
     <item
         android:id="@+id/action_disconnect_mqtt"
         android:title="Disconnect"
+        android:icon="@drawable/ab_disconnect"
         app:showAsAction="ifRoom" />
 
 

@@ -1,0 +1,112 @@
+<html>
+<body>
+<h1 id="mongodb-iot-example">MongoDB IoT Example</h1>
+<h2 id="context">Context</h2>
+<p>The context of the solution is to provide an example of how to use IoT applications with MongoDB as a database.</p>
+<p>Basically this is my extension of a talk given by John Page on MongoDB Days Munich 2014. It's lacking the paper, but it has more to do with the 'things' in IoT :)</p>
+<p>In this example, data is transmitted using MQTT as broker solution.</p>
+<p>Once published on the broker, sensor data from a mobile application gets received by a node.js application by subscription and stored in the database.</p>
+<h2 id="conventions">Conventions</h2>
+<p>Requirements level are to be treated according to RFC2119 ("Key words for use in RFCs to Indicate Requirement Levels").</p>
+<p>Timestamps must be specified as Unix Timestamp from epoch start (01/01/1970) in milliseconds.</p>
+<h2 id="component-descriptions">Component Descriptions</h2>
+<h3 id="custom-developed-solutions">Custom-developed solutions</h3>
+<h4 id="android-application-android-app">Android Application (android-app)</h4>
+<p>The Android application gathers data from the mobile device's accelerometer and publishes it onto a MQTT broker.</p>
+<h4 id="persistent-db-logger-db-logger">Persistent DB Logger (db-logger)</h4>
+<p>Component responsible for persistent storage of received data from MQTT broker.</p>
+<h4 id="docker-server-environment-docker-image">Docker Server Environment (docker-image)</h4>
+<p>This is a Dockerfile for server side environment which sets up Mosquitto, MongoDB and node.js for use.</p>
+<h3 id="cots-solutions">COTS Solutions</h3>
+<h4 id="mongodb">MongoDB</h4>
+<p>MongoDB is to be used as datastore due to its scalability properties.</p>
+<h4 id="mosquitto">Mosquitto</h4>
+<p>Mosquitto is a standalone MQTT broker solution running in a hosted environment.</p>
+<h2 id="interface-descriptions">Interface Descriptions</h2>
+<p>Data is exchanged by using MQTT (Message Queue Telemetry Transport) as a bus / PubSub provider.</p>
+<p>Data is published to one or more topics.
+    Supported topics <em>must</em> follow the convention "device/{deviceName}/{subTopic}".</p>
+<p>"{deviceName}" corresponds to a dynamic device name of a mobile. Here the (weak) assumption is made that the model name of the mobile device is unique enough for testing purposes.</p>
+<p>"{subTopic}" may be one of the following:</p>
+<p>"debug": Subtopic for debug output. Subscribed payload on persistent DB logger shall be print on screen.</p>
+<p>"accelerometer": Subtopic for transmission of device accelerometer sensor data. Subscribed payload on persistent DB logger must be stored in database. The payload is defined as a JSON object "{ 'x' : 0, 'y' : 0, 'z' : 0 } where "x"-"z" correspond to device acceleration in the corresponding orientation axis. This payload is wrapped on-wire in a Sensor Data DTO (Data Transfer Object) which looks like "{'payload' : { ... }, 'timestamp': 0}" where "timestamp" is defined as time the sensor event was recorded and "payload" is the object structure defined above as payload.</p>
+<h2 id="data-architecture">Data Architecture</h2>
+<p>Data is stored inside a single mongod instance or distributed among a cluster using sharding (the shard key is as of yet undefined, but will probably require an hashed index).</p>
+<p>The received data from devices gets immediately stored in a collection 'rawData'. </p>
+<p>The document schema for accelerometer data contains the values for "x"-"z" as defined above, for every document a composite id consisting of the sensor data timestamp and the unique device name.</p>
+<h2 id="license">License</h2>
+<h3 id="license-terms">License Terms</h3>
+<p>The MIT License (MIT)</p>
+<p>Copyright (c) 2014 - Current, Ralph Greschner</p>
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:</p>
+<p>The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.</p>
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.</p>
+<h3 id="terms-of-used-libraries">Terms of Used Libraries</h3>
+<h4 id="butter-knife">Butter Knife</h4>
+<p>Copyright 2013 Jake Wharton</p>
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.</p>
+<h4 id="dagger-a-fast-dependency-injector-for-android-and-java">Dagger - A fast dependency injector for Android and Java.</h4>
+<p>Copyright 2012 Square, Inc.</p>
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.</p>
+<h4 id="floatingactionbutton">FloatingActionButton</h4>
+<p>Copyright (C) 2014 Jerzy Chalupski</p>
+<p>Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.</p>
+<h4 id="google-gson">Google Gson</h4>
+<p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
+<h4 id="mpandroidchart">MPAndroidChart</h4>
+<p>Copyright 2014 Philipp Jahoda</p>
+<p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
+<h4 id="paho-open-source-messaging-for-m2m">Paho - Open Source messaging for M2M</h4>
+<p>This project is dual licensed under the Eclipse Public License 1.0 and the Eclipse Distribution License 1.0 as described in the epl-v10 and edl-v10 files.</p>
+<h4 id="rxandroid-reactive-extensions-for-android">RxAndroid - Reactive Extensions for Android</h4>
+<p>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
+<pre><code>http://www.apache.org/licenses/LICENSE-2.0
+</code></pre>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
+</body>
+</html>

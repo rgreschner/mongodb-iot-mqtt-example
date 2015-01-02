@@ -56,6 +56,7 @@
 
                 <ListView
                     android:id="@+id/log_list"
+                    android:padding="8dp"
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"/>
             </LinearLayout>
@@ -66,7 +67,7 @@
 
 
     <com.getbase.floatingactionbutton.FloatingActionsMenu
-        android:id="@+id/multiple_actions"
+        android:id="@+id/floating_actions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
@@ -84,10 +85,20 @@
             android:id="@+id/btnTestMQTT"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            fab:fab_icon="@drawable/ic_launcher"
+            fab:fab_icon="@drawable/fbtn_test"
             fab:fab_colorNormal="@color/white"
             fab:fab_title="Action A"
             fab:fab_colorPressed="@color/white_pressed" />
+
+        <com.getbase.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btn_about"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            fab:fab_icon="@drawable/fbtn_about"
+            fab:fab_colorNormal="@color/white"
+            fab:fab_title="Action A"
+            fab:fab_colorPressed="@color/white_pressed" />
+
     </com.getbase.floatingactionbutton.FloatingActionsMenu>
 
 </RelativeLayout>
