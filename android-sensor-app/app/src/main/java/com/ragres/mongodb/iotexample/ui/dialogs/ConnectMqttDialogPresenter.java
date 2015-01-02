@@ -48,6 +48,7 @@ public class ConnectMqttDialogPresenter {
 
     /**
      * Connect to server.
+     *
      * @param serverAddress Server to connect to.
      */
     public void connectToServer(final String serverAddress) {

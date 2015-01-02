@@ -6,6 +6,7 @@ import android.app.FragmentTransaction;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.widget.ListView;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.data.Entry;
@@ -17,8 +18,11 @@ import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
+import com.ragres.mongodb.iotexample.ui.dialogs.AboutDialogFragment;
 import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogFragment;
 
 import java.text.DateFormat;
@@ -44,10 +48,13 @@ public class MainActivityPresenter {
      */
     private BehaviorSubject<String> serverAddressObservable = BehaviorSubject.create();
 
+    private MainActivity mainActivity;
+
     /**
      * Observable for display of location settings dialog.
      */
     private BehaviorSubject showLocationSettingsDialogObservable = BehaviorSubject.create();
+    private BehaviorSubject collapseFloatingActionsMenuObservable = BehaviorSubject.create();
 
     /**
      * Android application.
@@ -94,6 +101,7 @@ public class MainActivityPresenter {
      * TODO: Remove / let it reside just in view/activity.
      */
     private LineChart lineChart;
+    private LogListAdapter logListAdapter;
 
     /**
      * Public constructor.
@@ -113,11 +121,16 @@ public class MainActivityPresenter {
         AsyncTask sendTestTask = new AsyncTask() {
             @Override
             protected Object doInBackground(Object[] objects) {
+                collapseFloatingActionsMenu();
                 brokerServiceClient.sendTest();
                 return null;
             }
         };
         sendTestTask.execute();
+    }
+
+    private void collapseFloatingActionsMenu() {
+        collapseFloatingActionsMenuObservable.onNext(null);
     }
 
     /**
@@ -251,9 +264,44 @@ public class MainActivityPresenter {
     /**
      * On activity create.
      */
-    public void onCreate() {
+    public void onCreate(MainActivity mainActivity) {
+
+        this.mainActivity = mainActivity;
+
+        logListAdapter = new LogListAdapter(androidApplication);
 
         serverAddressObservable.onNext(connectivityController.getServerAddress());
+
+        androidApplication.getSensorDataObservable().subscribe(new Action1<SensorDataDTO>() {
+
+            @Override
+            public void call(SensorDataDTO value) {
+                final LogListItem logListItem = new LogListItem();
+                logListItem.setTimestamp(new Date(value.getTimestamp()));
+                if (value.getPayload() instanceof AccelerometerDataPayload) {
+                    logListItem.setType(LogListItemType.SENSOR_ACCELEROMETER);
+                }
+                if (value.getPayload() instanceof LocationDataPayload) {
+                    logListItem.setType(LogListItemType.SENSOR_GPS);
+                }
+                androidApplication.getLogListItemObservable().onNext(logListItem);
+            }
+        });
+
+        androidApplication.getLogListItemObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<LogListItem>() {
+
+                    @Override
+                    public void call(LogListItem logListItem) {
+
+                        while (logListAdapter.getCount() > 10) {
+                            logListAdapter.remove(logListAdapter.getItem(0));
+                        }
+                        logListAdapter.add(logListItem);
+
+                    }
+                });
 
         BehaviorSubject<ConnectionState> connectionStateChangedSubject = connectivityController.
                 getConnectionStateChangedSubject();
@@ -264,6 +312,7 @@ public class MainActivityPresenter {
                     @Override
                     public void call(ConnectionState connectionState) {
                         updateUIForConnectionState();
+                        pushLogItemForConnectionState(connectionState);
                     }
                 });
 
@@ -272,14 +321,21 @@ public class MainActivityPresenter {
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
-                        if (ConnectionState.DISCONNECTING == connectionState) {
-                            androidApplication.setSendSensorData(false);
-                        }
-                        if (ConnectionState.CONNECTED == connectionState) {
-                            androidApplication.setSendSensorData(true);
-                        }
+                        boolean sendSensorData = ConnectionState.CONNECTED.equals(connectionState);
+                        androidApplication.setSendSensorData(sendSensorData);
                     }
                 });
+    }
+
+    private void pushLogItemForConnectionState(ConnectionState connectionState) {
+        if (ConnectionState.CONNECTED.equals(connectionState) ||
+                ConnectionState.DISCONNECTED.equals(connectionState)) {
+            LogListItem logListItem = new LogListItem();
+            logListItem.setTimestamp(new Date());
+            logListItem.setType(ConnectionState.CONNECTED.equals(connectionState) ?
+                    LogListItemType.CONNECTED : LogListItemType.DISCONNECTED);
+            androidApplication.getLogListItemObservable().onNext(logListItem);
+        }
     }
 
     /**
@@ -301,17 +357,14 @@ public class MainActivityPresenter {
 
     /**
      * Show connect to MQTT broker dialog.
-     *
-     * @param mainActivity TODO: Remove necessity to need activity as parameter.
      */
-    public void showConnectToMqttDialog(MainActivity mainActivity) {
+    public void showConnectToMqttDialog() {
         FragmentTransaction ft = mainActivity.getFragmentManager().beginTransaction();
         Fragment prev = mainActivity.getFragmentManager().findFragmentByTag("dialog");
         if (null != prev) {
             ft.remove(prev);
         }
         ft.addToBackStack(null);
-
 
         DialogFragment newFragment = ConnectMqttDialogFragment.newInstance();
         newFragment.show(ft, "dialog");
@@ -343,5 +396,30 @@ public class MainActivityPresenter {
 
     public void forceUpdateUIForConnectionState() {
         updateUIForConnectionState();
+    }
+
+    public void setLogListAdapter(ListView logList) {
+        logList.setAdapter(logListAdapter);
+    }
+
+    public BehaviorSubject getCollapseFloatingActionsMenuObservable() {
+        return collapseFloatingActionsMenuObservable;
+    }
+
+    public void onAboutButtonClick() {
+        collapseFloatingActionsMenu();
+        showAboutDialog();
+    }
+
+    private void showAboutDialog() {
+        FragmentTransaction ft = mainActivity.getFragmentManager().beginTransaction();
+        Fragment prev = mainActivity.getFragmentManager().findFragmentByTag("dialog");
+        if (null != prev) {
+            ft.remove(prev);
+        }
+        ft.addToBackStack(null);
+
+        DialogFragment newFragment = AboutDialogFragment.newInstance();
+        newFragment.show(ft, "dialog");
     }
 }

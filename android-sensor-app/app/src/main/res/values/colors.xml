@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <color name="color_connection_state_connected">#00FF00</color>
+    <color name="color_connection_state_connected">#00CC00</color>
+    <color name="greeny_green">#D1FFBC</color>
     <color name="color_connection_state_disconnected">#FF0000</color>
     <color name="color_connection_state_intermediate">#0000FF</color>
     <color name="black_semi_transparent">#B2000000</color>

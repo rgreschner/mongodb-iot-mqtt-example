@@ -15,8 +15,6 @@ import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import java.util.Date;
-
 import javax.inject.Inject;
 
 /**
@@ -114,6 +112,7 @@ public class BrokerServiceClient {
 
     /**
      * Send connected message.
+     *
      * @return True if successful, false if not.
      */
     public boolean sendConnected() {

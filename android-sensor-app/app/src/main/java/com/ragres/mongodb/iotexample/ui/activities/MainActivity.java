@@ -10,9 +10,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.github.mikephil.charting.charts.LineChart;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
@@ -97,6 +99,12 @@ public class MainActivity extends ActionBarActivity {
     @InjectView(R.id.btnTestMQTT)
     FloatingActionButton btnTestMQTT;
 
+    /**
+     * Test MQTT connection button.
+     */
+    @InjectView(R.id.btn_about)
+    FloatingActionButton btnAbout;
+
 
     @InjectView(R.id.chart)
     LineChart lineChart;
@@ -106,6 +114,12 @@ public class MainActivity extends ActionBarActivity {
      */
     @InjectView(R.id.labelConnectionStatusValue)
     TextView labelConnectionStatusValue;
+
+    /**
+     * Label for connection status.
+     */
+    @InjectView(R.id.floating_actions)
+    FloatingActionsMenu floatingActionsMenu;
 
     /**
      * Connect to server button.
@@ -119,6 +133,12 @@ public class MainActivity extends ActionBarActivity {
      */
     @InjectView(R.id.toolbar)
     Toolbar toolbar;
+
+    /**
+     * Toolbar.
+     */
+    @InjectView(R.id.log_list)
+    ListView logList;
 
     /**
      * Menu.
@@ -193,7 +213,16 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
+        // Setup event listener for about button.
+        btnAbout.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mainActivityPresenter.onAboutButtonClick();
+            }
+        });
+
         setSupportActionBar(toolbar);
+        toolbar.setBackgroundColor(getResources().getColor(R.color.greeny_green));
 
         setUpLineChart();
         setUpPresenter();
@@ -203,7 +232,8 @@ public class MainActivity extends ActionBarActivity {
     private void setUpPresenter() {
         mainActivityPresenter = getAndroidApplication().getObjectGraph().get(MainActivityPresenter.class);
 
-        mainActivityPresenter.onCreate();
+        mainActivityPresenter.onCreate(this);
+        mainActivityPresenter.setLogListAdapter(logList);
 
         mainActivityPresenter.getUpdateUIForConnectionStateObservable()
                 .observeOn(AndroidSchedulers.mainThread())
@@ -220,6 +250,15 @@ public class MainActivity extends ActionBarActivity {
                     @Override
                     public void call(String value) {
                         labelServerAddress.setText(value);
+                    }
+                });
+
+        mainActivityPresenter.getCollapseFloatingActionsMenuObservable()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Action1<String>() {
+                    @Override
+                    public void call(String value) {
+                        floatingActionsMenu.collapse();
                     }
                 });
 
@@ -310,7 +349,7 @@ public class MainActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.action_connect_mqtt:
-                mainActivityPresenter.showConnectToMqttDialog(this);
+                mainActivityPresenter.showConnectToMqttDialog();
                 break;
             case R.id.action_disconnect_mqtt:
                 mainActivityPresenter.disconnectFromServer();
@@ -336,6 +375,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         btnTestMQTT.setEnabled(buttonStates.isTestMqttEnabled());
+        btnTestMQTT.setVisibility(buttonStates.isTestMqttEnabled() ? View.VISIBLE : View.GONE);
 
         if (null != menu) {
             menu.findItem(R.id.action_connect_mqtt)

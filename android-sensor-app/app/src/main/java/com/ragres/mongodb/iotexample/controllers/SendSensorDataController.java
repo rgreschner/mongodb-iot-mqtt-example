@@ -12,8 +12,11 @@ import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
 import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItem;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItemType;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -164,6 +167,7 @@ public class SendSensorDataController {
 
     /**
      * Event handler for processing list of sensor data.
+     *
      * @param sensorDataDTOs List of sensor data.
      */
     private void onSensorDataDTOsAvailable(List<SensorDataDTO> sensorDataDTOs) {
@@ -172,23 +176,31 @@ public class SendSensorDataController {
         if (1 > sensorDataDTOs.size())
             return;
 
+        // ASSUMPTION: If mqttClient is != null, it is connected
+        boolean isSendSensorDataEnabled = isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient();
+
+        if (!isSendSensorDataEnabled)
+            return;
+
         for (SensorDataDTO sensorDataDTO : sensorDataDTOs) {
 
             if (LOG_SENSOR_DATA) {
                 Log.v(Logging.TAG, "Sensor data: " + gson.toJson(sensorDataDTO));
             }
 
-
-            // ASSUMPTION: If mqttClient is != null, it is connected
-            if (isSendSensorDataEnabled() && null != getConnectivityController().getMqttClient()) {
-                sendSensorDataDTO(sensorDataDTO);
-            }
+            sendSensorDataDTO(sensorDataDTO);
 
         }
+
+        LogListItem logListItem = new LogListItem();
+        logListItem.setTimestamp(new Date());
+        logListItem.setType(LogListItemType.SEND_SENSOR_DATA);
+        androidApplication.getLogListItemObservable().onNext(logListItem);
     }
 
     /**
      * Send single sensor data DTO.
+     *
      * @param sensorDataDTO Sensor data DTO to send.
      */
     private void sendSensorDataDTO(SensorDataDTO sensorDataDTO) {
@@ -205,6 +217,7 @@ public class SendSensorDataController {
 
     /**
      * Return subtopic for sensor data DTO.
+     *
      * @param sensorDataDTO Sensor data DTO to get subtopic for.
      * @return Subtopic for sensor data DTO.
      */
@@ -219,6 +232,7 @@ public class SendSensorDataController {
 
     /**
      * Return subtopic for sensor data payload.
+     *
      * @param payload Sensor data payload to get subtopic for.
      * @return Subtopic for sensor data payload.
      */

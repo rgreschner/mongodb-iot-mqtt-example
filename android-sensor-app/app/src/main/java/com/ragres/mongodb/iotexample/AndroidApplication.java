@@ -6,8 +6,7 @@ import android.content.Intent;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.modules.MainModule;
 import com.ragres.mongodb.iotexample.services.TelemetryService;
-
-import javax.inject.Inject;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItem;
 
 import dagger.ObjectGraph;
 import rx.subjects.BehaviorSubject;
@@ -35,6 +34,9 @@ public class AndroidApplication extends Application {
     private BehaviorSubject sensorDataObservable =
             BehaviorSubject.create();
 
+    private BehaviorSubject<LogListItem> logListItemObservable =
+            BehaviorSubject.create();
+
     /**
      * Connectivity controller.
      */
@@ -54,6 +56,7 @@ public class AndroidApplication extends Application {
      */
     public String getDeviceSubTopic(String relativePath) {
         String fullTopic = "device/" + getDeviceName() + relativePath;
+        fullTopic = fullTopic.replace(" ", "_");
         return fullTopic;
     }
 
@@ -116,4 +119,10 @@ public class AndroidApplication extends Application {
     }
 
 
+    /**
+     * Observable for sensor data events.
+     */
+    public BehaviorSubject<LogListItem> getLogListItemObservable() {
+        return logListItemObservable;
+    }
 }

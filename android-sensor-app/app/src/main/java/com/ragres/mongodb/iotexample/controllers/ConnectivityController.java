@@ -21,9 +21,6 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import java.util.Date;
-import java.util.concurrent.Semaphore;
-
 import javax.inject.Inject;
 
 import rx.subjects.BehaviorSubject;

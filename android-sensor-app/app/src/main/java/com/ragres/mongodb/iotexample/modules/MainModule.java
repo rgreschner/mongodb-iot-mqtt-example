@@ -10,7 +10,6 @@ import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.activities.MainActivityPresenter;
 import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogPresenter;
 
-
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -99,7 +98,7 @@ public class MainModule {
     @Singleton
     public LocationManager provideLocationManager() {
         return
-        (LocationManager) androidApplication.getSystemService(Context.LOCATION_SERVICE);
+                (LocationManager) androidApplication.getSystemService(Context.LOCATION_SERVICE);
 
 
     }
