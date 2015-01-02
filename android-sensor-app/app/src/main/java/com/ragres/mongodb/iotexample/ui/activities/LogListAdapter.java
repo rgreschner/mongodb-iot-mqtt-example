@@ -17,8 +17,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Adapter for log list items.
+ */
 public class LogListAdapter extends ArrayAdapter<LogListItem> {
 
+    /**
+     * Mappings of log list item type to icon resource.
+     */
     private static Map<LogListItemType, Integer> ITEM_TYPE_TO_ICONS_MAPPING
             = new HashMap<>();
 
@@ -45,22 +51,38 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
 
     }
 
+    /**
+     * Format for date formatting.
+     */
     public static final DateFormat FORMAT_DATE_HOUR = new SimpleDateFormat("HH:mm:ss");
 
+    /**
+     * Layout inflater.
+     */
+    private final LayoutInflater layoutInflater;
+
+    /**
+     * Public constructor.
+     */
     public LogListAdapter(Context context
     ) {
         super(context, R.layout.item_log_list);
+        layoutInflater = (LayoutInflater) super.getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
     }
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         LogListItem item = this.getItem(position);
-        LayoutInflater layoutInflater = (LayoutInflater) super.getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
         View view = layoutInflater.inflate(R.layout.item_log_list, parent, false);
         applyView(view, item);
         return view;
     }
 
+    /**
+     * Apply data to view.
+     * @param view View to apply data to.
+     * @param item Item with data.
+     */
     private void applyView(View view, LogListItem item) {
 
         if (null == item)
@@ -81,6 +103,11 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
         textView.setText(": " + item.getType().toString());
     }
 
+    /**
+     * Get item icon resource for item.
+     * @param item Item to get icon for.
+     * @return Resource id of item icon.
+     */
     private Integer getItemIconResource(LogListItem item) {
         Integer resId = R.drawable.loglistitem_icon_default;
         if (ITEM_TYPE_TO_ICONS_MAPPING.containsKey(item.getType())) {
