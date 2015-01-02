@@ -20,6 +20,7 @@ import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 import javax.inject.Inject;
 
@@ -160,8 +161,8 @@ public class ConnectivityController {
 
 
         String clientId = generateClientId();
-        final MqttAndroidClient localMqttClient = new MqttAndroidClient(context, serverAddress, clientId);
-
+        MemoryPersistence persistence = new MemoryPersistence();
+        final MqttAndroidClient localMqttClient = new MqttAndroidClient(context, serverAddress, clientId, persistence);
 
         MqttConnectOptions connectionOpts = getBrokerConnectionOptions();
         try {

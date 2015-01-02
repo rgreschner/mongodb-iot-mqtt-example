@@ -42,11 +42,11 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
                 R.drawable.loglistitem_icon_send);
 
         ITEM_TYPE_TO_ICONS_MAPPING.put(
-                LogListItemType.DISCONNECTED,
+                LogListItemType.CONNECTED,
                 R.drawable.loglistitem_icon_connected);
 
         ITEM_TYPE_TO_ICONS_MAPPING.put(
-                LogListItemType.CONNECTED,
+                LogListItemType.DISCONNECTED,
                 R.drawable.loglistitem_icon_disconnected);
 
     }
