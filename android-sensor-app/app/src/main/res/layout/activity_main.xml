@@ -29,6 +29,13 @@
             android:layout_height="fill_parent"
             android:orientation="vertical">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin"
+                android:layout_marginBottom="8dp"
+                android:textStyle="bold"
+                android:text="@string/label_sensor_data_text"/>
 
             <LinearLayout
                 android:layout_width="fill_parent"
@@ -40,7 +47,7 @@
                 >
 
                 <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/chart"
+                    android:id="@+id/sensor_data_chart"
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"
                     />
@@ -82,7 +89,7 @@
         android:layout_marginEnd="16dp">
 
         <com.getbase.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnTestMQTT"
+            android:id="@+id/btn_test_mqtt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             fab:fab_icon="@drawable/fbtn_test"

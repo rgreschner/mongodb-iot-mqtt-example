@@ -24,11 +24,24 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
 
     /**
      * Mappings of log list item type to icon resource.
+     * Key: Log list item type.
+     * Value: Resource id for item type icon.
      */
     private static Map<LogListItemType, Integer> ITEM_TYPE_TO_ICONS_MAPPING
             = new HashMap<>();
 
+    /**
+     * Static constructor.
+     */
     static {
+        initializeIconMappings();
+
+    }
+
+    /**
+     * Initialize icon mappings for log list item types.
+     */
+    private static void initializeIconMappings() {
         ITEM_TYPE_TO_ICONS_MAPPING.put(
                 LogListItemType.SENSOR_ACCELEROMETER,
                 R.drawable.loglistitem_icon_sensor_accelerometer);
@@ -48,7 +61,6 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
         ITEM_TYPE_TO_ICONS_MAPPING.put(
                 LogListItemType.DISCONNECTED,
                 R.drawable.loglistitem_icon_disconnected);
-
     }
 
     /**
@@ -70,6 +82,10 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
         layoutInflater = (LayoutInflater) super.getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
     }
 
+    /**
+     * Get view for item.
+     * @return View for item.
+     */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         LogListItem item = this.getItem(position);
@@ -85,14 +101,16 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
      */
     private void applyView(View view, LogListItem item) {
 
-        if (null == item)
+        if (null == item){
             return;
+        }
 
         ImageView itemIcon = (ImageView) view.findViewById(R.id.item_icon);
 
         Integer resId = getItemIconResource(item);
-        if (null != resId)
+        if (null != resId) {
             itemIcon.setImageResource(resId);
+        }
 
         TextView textView = (TextView) view.findViewById(R.id.text1);
         Date timestamp = item.getTimestamp();

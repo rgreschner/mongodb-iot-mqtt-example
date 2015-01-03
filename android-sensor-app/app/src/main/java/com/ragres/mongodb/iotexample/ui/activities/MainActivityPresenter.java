@@ -54,6 +54,10 @@ public class MainActivityPresenter {
      * Observable for display of location settings dialog.
      */
     private BehaviorSubject showLocationSettingsDialogObservable = BehaviorSubject.create();
+
+    /**
+     * Observable for calling activity floating action menu collapse.
+     */
     private BehaviorSubject collapseFloatingActionsMenuObservable = BehaviorSubject.create();
 
     /**
@@ -96,11 +100,7 @@ public class MainActivityPresenter {
      */
     private LocationManager locationManager;
 
-    /**
-     * Line chart.
-     * TODO: Remove / let it reside just in view/activity.
-     */
-    private LineChart lineChart;
+
     private LogListAdapter logListAdapter;
 
     /**
@@ -135,12 +135,10 @@ public class MainActivityPresenter {
 
     /**
      * Set up line chart.
-     *
-     * @param lineChart Line chart to set up.
      */
-    public void setUpLineChart(LineChart lineChart) {
+    public void setUpLineChart() {
 
-        this.lineChart = lineChart;
+        LineChart lineChart = mainActivity.getSensorDataChart();
 
         ArrayList<Entry> yVals = new ArrayList<>();
         sensorDataSet = new LineDataSet(yVals, "DataSet 1");
@@ -198,6 +196,8 @@ public class MainActivityPresenter {
      * @param count Count of sensor data in last second.
      */
     private void updateSensorDataChart(Integer count) {
+
+        LineChart lineChart = mainActivity.getSensorDataChart();
 
         String timeText = FORMAT_DATE_HOUR.format(new Date());
 

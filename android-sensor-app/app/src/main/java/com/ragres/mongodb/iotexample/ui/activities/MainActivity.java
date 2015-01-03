@@ -26,6 +26,7 @@ import java.util.Map;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 
@@ -48,6 +49,14 @@ public class MainActivity extends ActionBarActivity {
      * Static initializer.
      */
     static {
+        initializeButtonStates();
+
+    }
+
+    /**
+     * Initialize connectivity button states.
+     */
+    private static void initializeButtonStates() {
         ConnectivityButtonStates buttonStates = null;
 
         buttonStates = new ConnectivityButtonStates();
@@ -89,30 +98,39 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setConnectToServerVisible(true);
         buttonStates.setDisconnectToServerVisible(false);
         connectivityButtonStateList.put(ConnectionState.CONNECTING, buttonStates);
-
     }
+
+
+    private Subscription getUpdateUIForConnectionStateObservableSubscription;
+    private Subscription getServerAddressObservableSubscription;
+    private Subscription getCollapseFloatingActionsMenuObservableSubscription;
+    private Subscription getShowLocationSettingsDialogObservableSubscription;
+
+
 
 
     /**
      * Test MQTT connection button.
      */
-    @InjectView(R.id.btnTestMQTT)
+    @InjectView(R.id.btn_test_mqtt)
     FloatingActionButton btnTestMQTT;
 
     /**
-     * Test MQTT connection button.
+     * About button.
      */
     @InjectView(R.id.btn_about)
     FloatingActionButton btnAbout;
 
-
-    @InjectView(R.id.chart)
-    LineChart lineChart;
+    /**
+     * Sensor data chart.
+     */
+    @InjectView(R.id.sensor_data_chart)
+    LineChart sensorDataChart;
 
     /**
      * Label for connection status.
      */
-    @InjectView(R.id.labelConnectionStatusValue)
+    @InjectView(R.id.label_connection_status_value)
     TextView labelConnectionStatusValue;
 
     /**
@@ -124,7 +142,7 @@ public class MainActivity extends ActionBarActivity {
     /**
      * Connect to server button.
      */
-    @InjectView(R.id.labelServerAddress)
+    @InjectView(R.id.label_server_address)
     TextView labelServerAddress;
 
 
@@ -235,7 +253,8 @@ public class MainActivity extends ActionBarActivity {
         mainActivityPresenter.onCreate(this);
         mainActivityPresenter.setLogListAdapter(logList);
 
-        mainActivityPresenter.getUpdateUIForConnectionStateObservable()
+        getUpdateUIForConnectionStateObservableSubscription =
+                mainActivityPresenter.getUpdateUIForConnectionStateObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
@@ -244,7 +263,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getServerAddressObservable()
+        getServerAddressObservableSubscription =
+                mainActivityPresenter.getServerAddressObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<String>() {
                     @Override
@@ -253,7 +273,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getCollapseFloatingActionsMenuObservable()
+        getCollapseFloatingActionsMenuObservableSubscription =
+                mainActivityPresenter.getCollapseFloatingActionsMenuObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<String>() {
                     @Override
@@ -262,7 +283,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getShowLocationSettingsDialogObservable()
+        getShowLocationSettingsDialogObservableSubscription =
+                mainActivityPresenter.getShowLocationSettingsDialogObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1() {
                     @Override
@@ -271,14 +293,14 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.setUpLineChart(lineChart);
+        mainActivityPresenter.setUpLineChart();
     }
 
     private void setUpLineChart() {
-        lineChart.setDrawLegend(false);
-        lineChart.setTouchEnabled(false);
-        lineChart.setHighlightEnabled(false);
-        lineChart.setDescription("");
+        getSensorDataChart().setDrawLegend(false);
+        getSensorDataChart().setTouchEnabled(false);
+        getSensorDataChart().setHighlightEnabled(false);
+        getSensorDataChart().setDescription("");
     }
 
 
@@ -392,5 +414,39 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    /**
+     * On activity destroy.
+     */
+    @Override
+    public void onDestroy() {
 
+        if (null != getCollapseFloatingActionsMenuObservableSubscription){
+            getCollapseFloatingActionsMenuObservableSubscription.unsubscribe();
+            getCollapseFloatingActionsMenuObservableSubscription = null;
+        }
+
+        if (null != getServerAddressObservableSubscription){
+            getServerAddressObservableSubscription.unsubscribe();
+            getServerAddressObservableSubscription = null;
+        }
+
+        if (null != getShowLocationSettingsDialogObservableSubscription){
+            getShowLocationSettingsDialogObservableSubscription.unsubscribe();
+            getShowLocationSettingsDialogObservableSubscription = null;
+        }
+
+        if (null != getUpdateUIForConnectionStateObservableSubscription){
+            getUpdateUIForConnectionStateObservableSubscription.unsubscribe();
+            getUpdateUIForConnectionStateObservableSubscription = null;
+        }
+
+    }
+
+
+    /**
+     * Get sensor data chart.
+     */
+    public LineChart getSensorDataChart() {
+        return sensorDataChart;
+    }
 }

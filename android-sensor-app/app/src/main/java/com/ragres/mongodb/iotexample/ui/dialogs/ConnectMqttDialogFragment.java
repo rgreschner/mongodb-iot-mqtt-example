@@ -26,14 +26,22 @@ public class ConnectMqttDialogFragment extends DialogFragment {
     /**
      * Connect to server button.
      */
-    @InjectView(R.id.inputServerAddress)
+    @InjectView(R.id.input_server_address)
     EditText inputServerAddress;
 
     /**
      * Dialog presenter.
      */
     private ConnectMqttDialogPresenter connectMqttDialogPresenter;
+
+    /**
+     * Event subscription on getServerAddressTextObservable.
+     */
     private Subscription getServerAddressTextObservableSubscription;
+
+    /**
+     * Event subscription on getDismissDialogObservableSubscription.
+     */
     private Subscription getDismissDialogObservableSubscription;
 
 
