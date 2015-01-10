@@ -126,7 +126,7 @@ public class MainActivityPresenter {
                 return null;
             }
         };
-        sendTestTask.execute();
+        sendTestTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     private void collapseFloatingActionsMenu() {
@@ -382,7 +382,7 @@ public class MainActivityPresenter {
                 return null;
             }
         };
-        disconnectTask.execute();
+        disconnectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
 

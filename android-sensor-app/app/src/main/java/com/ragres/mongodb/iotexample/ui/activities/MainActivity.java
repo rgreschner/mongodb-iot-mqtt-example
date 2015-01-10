@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,9 +22,6 @@ import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import rx.Subscription;
@@ -37,20 +35,30 @@ public class MainActivity extends ActionBarActivity {
 
 
     /**
-     * Map containings mappings for button states according to connectivity
-     * state.
-     * Key: Connection state.
+     * Mapping of connectivity state to button enabled / visible
+     * states.
+     * Key: Connection state as ordinal.
      * Value: Button states for connection states.
      */
-    private static Map<ConnectionState, ConnectivityButtonStates> connectivityButtonStateList
-            = new HashMap<>();
+    private static SparseArray<ConnectivityButtonStates> CONNECTIVITY_BUTTON_STATES
+            = new SparseArray<>(ConnectionState.values().length);
 
     /**
      * Static initializer.
      */
     static {
         initializeButtonStates();
+    }
 
+    /**
+     * Put button states for connectivity states.
+     * @param connectionState
+     * @param states
+     */
+    private static void putConnectivityButtonState(ConnectionState connectionState,
+                                                   ConnectivityButtonStates states) {
+        int connectionStateOrdinal = connectionState.ordinal();
+        CONNECTIVITY_BUTTON_STATES.put(connectionStateOrdinal, states);
     }
 
     /**
@@ -65,7 +73,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.UNKNOWN, buttonStates);
+        putConnectivityButtonState(ConnectionState.UNKNOWN, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -73,7 +81,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(true);
-        connectivityButtonStateList.put(ConnectionState.DISCONNECTING, buttonStates);
+        putConnectivityButtonState(ConnectionState.DISCONNECTING, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(true);
@@ -81,7 +89,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(true);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.DISCONNECTED, buttonStates);
+        putConnectivityButtonState(ConnectionState.DISCONNECTED, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -89,7 +97,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(true);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(true);
-        connectivityButtonStateList.put(ConnectionState.CONNECTED, buttonStates);
+        putConnectivityButtonState(ConnectionState.CONNECTED, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -97,7 +105,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(true);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.CONNECTING, buttonStates);
+        putConnectivityButtonState(ConnectionState.CONNECTING, buttonStates);
     }
 
 
@@ -132,6 +140,12 @@ public class MainActivity extends ActionBarActivity {
      */
     @InjectView(R.id.label_connection_status_value)
     TextView labelConnectionStatusValue;
+
+    /**
+     * Label for device name.
+     */
+    @InjectView(R.id.label_device_name_value)
+    TextView labelDeviceNameValue;
 
     /**
      * Label for connection status.
@@ -222,6 +236,9 @@ public class MainActivity extends ActionBarActivity {
 
         // Do view injection.
         ButterKnife.inject(this);
+
+        String deviceName = getAndroidApplication().getDeviceName();
+        labelDeviceNameValue.setText(deviceName);
 
         // Setup event listener for test button.
         btnTestMQTT.setOnClickListener(new View.OnClickListener() {
@@ -383,6 +400,23 @@ public class MainActivity extends ActionBarActivity {
     }
 
     /**
+     * Get connectivity button states for connection state.
+     * @param connectionState Connection state to get button states for.
+     * @return Button states for connectivity states.
+     */
+    private ConnectivityButtonStates getConnectivityButtonStates(ConnectionState connectionState){
+        ConnectivityButtonStates buttonStates
+                = CONNECTIVITY_BUTTON_STATES.get(ConnectionState.UNKNOWN.ordinal());
+        if (null != connectionState) {
+            int connectionStateOrdinal = connectionState.ordinal();
+            if (CONNECTIVITY_BUTTON_STATES.indexOfKey(connectionStateOrdinal) >= 0) {
+                buttonStates = CONNECTIVITY_BUTTON_STATES.get(connectionStateOrdinal);
+            }
+        }
+        return buttonStates;
+    }
+
+    /**
      * Set buttons' enabled state for new connection state.
      *
      * @param connectionState New connection state.
@@ -390,11 +424,7 @@ public class MainActivity extends ActionBarActivity {
     private void setButtonsEnabledForConnectionState(ConnectionState connectionState) {
 
         ConnectivityButtonStates buttonStates =
-                connectivityButtonStateList.get(connectionState);
-
-        if (null == buttonStates) {
-            buttonStates = connectivityButtonStateList.get(ConnectionState.UNKNOWN);
-        }
+                getConnectivityButtonStates(connectionState);
 
         btnTestMQTT.setEnabled(buttonStates.isTestMqttEnabled());
         btnTestMQTT.setVisibility(buttonStates.isTestMqttEnabled() ? View.VISIBLE : View.GONE);
@@ -419,6 +449,8 @@ public class MainActivity extends ActionBarActivity {
      */
     @Override
     public void onDestroy() {
+
+        super.onDestroy();
 
         if (null != getCollapseFloatingActionsMenuObservableSubscription){
             getCollapseFloatingActionsMenuObservableSubscription.unsubscribe();

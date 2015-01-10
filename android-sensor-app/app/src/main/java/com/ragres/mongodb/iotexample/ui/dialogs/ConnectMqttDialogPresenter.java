@@ -60,7 +60,7 @@ public class ConnectMqttDialogPresenter {
                 return null;
             }
         };
-        connectTask.execute();
+        connectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     /**
