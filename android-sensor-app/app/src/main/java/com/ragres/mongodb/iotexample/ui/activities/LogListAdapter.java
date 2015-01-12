@@ -2,6 +2,8 @@ package com.ragres.mongodb.iotexample.ui.activities;
 
 import android.app.Service;
 import android.content.Context;
+import android.util.Log;
+import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.ragres.mongodb.iotexample.R;
+import com.ragres.mongodb.iotexample.misc.Logging;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -22,59 +25,107 @@ import java.util.Map;
  */
 public class LogListAdapter extends ArrayAdapter<LogListItem> {
 
+    public static final int DEFAULT_ICON = R.drawable.loglistitem_icon_default;
     /**
      * Mappings of log list item type to icon resource.
+     * Key: Log list item type as ordinal.
+     * Value: Resource id for item type icon.
      */
-    private static Map<LogListItemType, Integer> ITEM_TYPE_TO_ICONS_MAPPING
-            = new HashMap<>();
+    private static SparseIntArray ITEM_TYPE_TO_ICONS_MAPPING
+            = new SparseIntArray(LogListItemType.values().length);
 
+    /**
+     * Static constructor.
+     */
     static {
-        ITEM_TYPE_TO_ICONS_MAPPING.put(
+        initializeIconMappings();
+
+    }
+
+    /**
+     * Put icon mapping for log item type.
+     * @param type Log item type to put icon for.
+     * @param resId Icon resource id.
+     */
+    private static void putIconMapping(LogListItemType type, int resId){
+        int typeOrdinal = type.ordinal();
+        ITEM_TYPE_TO_ICONS_MAPPING.put(typeOrdinal, resId);
+    }
+
+    /**
+     * Initialize icon mappings for log list item types.
+     */
+    private static void initializeIconMappings() {
+        putIconMapping(
                 LogListItemType.SENSOR_ACCELEROMETER,
                 R.drawable.loglistitem_icon_sensor_accelerometer);
 
-        ITEM_TYPE_TO_ICONS_MAPPING.put(
+        putIconMapping(
                 LogListItemType.SENSOR_GPS,
                 R.drawable.loglistitem_icon_sensor_gps);
 
-        ITEM_TYPE_TO_ICONS_MAPPING.put(
+        putIconMapping(
                 LogListItemType.SEND_SENSOR_DATA,
                 R.drawable.loglistitem_icon_send);
 
-        ITEM_TYPE_TO_ICONS_MAPPING.put(
+        putIconMapping(
                 LogListItemType.CONNECTED,
                 R.drawable.loglistitem_icon_connected);
 
-        ITEM_TYPE_TO_ICONS_MAPPING.put(
+        putIconMapping(
                 LogListItemType.DISCONNECTED,
                 R.drawable.loglistitem_icon_disconnected);
-
     }
 
     /**
      * Format for date formatting.
      */
-    public static final DateFormat FORMAT_DATE_HOUR = new SimpleDateFormat("HH:mm:ss");
+    public static final DateFormat FORMAT_DATE_SENSOR_TIMESTAMP
+            = new SimpleDateFormat("HH:mm:ss.SSS");
 
     /**
      * Layout inflater.
      */
     private final LayoutInflater layoutInflater;
 
+
+    private LogListItemPool logListItemPool;
+
     /**
      * Public constructor.
      */
-    public LogListAdapter(Context context
-    ) {
+    public LogListAdapter(Context context, LogListItemPool logListItemPool) {
         super(context, R.layout.item_log_list);
+        this.logListItemPool = logListItemPool;
         layoutInflater = (LayoutInflater) super.getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
     }
 
+    /**
+     * Get view for item.
+     * @return View for item.
+     */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         LogListItem item = this.getItem(position);
-        View view = layoutInflater.inflate(R.layout.item_log_list, parent, false);
-        applyView(view, item);
+        View view = convertView;
+        LogListItemViewHolder logListItemViewHolder = null;
+        if (null == view) {
+            view = layoutInflater.inflate(R.layout.item_log_list, parent, false);
+            logListItemViewHolder = new LogListItemViewHolder();
+            logListItemViewHolder.injectFromView(view);
+            view.setTag(logListItemViewHolder);
+        } else {
+            logListItemViewHolder = (LogListItemViewHolder) view.getTag();
+        }
+
+        if (null == logListItemViewHolder){
+            Log.w(Logging.TAG, "LogListItemViewHolder is null.");
+            return view;
+        }
+
+        resetViewData(view, logListItemViewHolder);
+        applyViewData(view, item, logListItemViewHolder);
+
         return view;
     }
 
@@ -82,25 +133,49 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
      * Apply data to view.
      * @param view View to apply data to.
      * @param item Item with data.
+     * @param logListItemViewHolder
      */
-    private void applyView(View view, LogListItem item) {
+    private void applyViewData(View view, LogListItem item, LogListItemViewHolder logListItemViewHolder) {
 
-        if (null == item)
+        if (null == item){
+            Log.w(Logging.TAG, "LogListItem for apply data is null.");
             return;
+        }
 
-        ImageView itemIcon = (ImageView) view.findViewById(R.id.item_icon);
+        ImageView itemIcon = logListItemViewHolder.itemIcon;
 
         Integer resId = getItemIconResource(item);
-        if (null != resId)
+        if (null != resId) {
             itemIcon.setImageResource(resId);
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no image resource.");
+        }
 
-        TextView textView = (TextView) view.findViewById(R.id.text1);
+        TextView text1 = logListItemViewHolder.text1;
         Date timestamp = item.getTimestamp();
         if (null != timestamp) {
-            textView.setText(FORMAT_DATE_HOUR.format(timestamp));
+            text1.setText(FORMAT_DATE_SENSOR_TIMESTAMP.format(timestamp));
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no timestamp.");
         }
-        textView = (TextView) view.findViewById(R.id.text2);
-        textView.setText(": " + item.getType().toString());
+        TextView text2 = logListItemViewHolder.text2;
+        LogListItemType itemType = item.getType();
+        if (null != itemType) {
+            text2.setText(itemType.toString());
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no type.");
+        }
+    }
+
+    /**
+     * Reset displayed data on view.
+     * @param view View.
+     * @param logListItemViewHolder View holder with controls.
+     */
+    private void resetViewData(View view, LogListItemViewHolder logListItemViewHolder) {
+        logListItemViewHolder.itemIcon.setImageResource(DEFAULT_ICON);
+        logListItemViewHolder.text1.setText("");
+        logListItemViewHolder.text2.setText("");
     }
 
     /**
@@ -108,11 +183,13 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
      * @param item Item to get icon for.
      * @return Resource id of item icon.
      */
-    private Integer getItemIconResource(LogListItem item) {
-        Integer resId = R.drawable.loglistitem_icon_default;
-        if (ITEM_TYPE_TO_ICONS_MAPPING.containsKey(item.getType())) {
-            resId = ITEM_TYPE_TO_ICONS_MAPPING.get(item.getType());
+    private int getItemIconResource(LogListItem item) {
+        LogListItemType type = item.getType();
+        int typeOrdinal = -1;
+        if (null != type) {
+            typeOrdinal = type.ordinal();
         }
+        int resId = ITEM_TYPE_TO_ICONS_MAPPING.get(typeOrdinal, DEFAULT_ICON);
         return resId;
     }
 }

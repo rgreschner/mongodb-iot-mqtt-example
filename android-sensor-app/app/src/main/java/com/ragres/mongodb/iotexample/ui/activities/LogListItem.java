@@ -2,10 +2,19 @@ package com.ragres.mongodb.iotexample.ui.activities;
 
 import java.util.Date;
 
+/**
+ * Item in log list.
+ */
 public class LogListItem {
 
+    /**
+     * Item type.
+     */
     private LogListItemType type;
 
+    /**
+     * Timestamp.
+     */
     private Date timestamp;
 
     public LogListItemType getType() {
@@ -22,5 +31,10 @@ public class LogListItem {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public void clear() {
+        type = null;
+        timestamp = null;
     }
 }

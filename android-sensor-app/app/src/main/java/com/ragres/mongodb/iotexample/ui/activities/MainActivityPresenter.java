@@ -3,6 +3,7 @@ package com.ragres.mongodb.iotexample.ui.activities;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.content.res.Configuration;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -31,9 +32,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import dagger.internal.ArrayQueue;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -41,19 +44,41 @@ import rx.subjects.BehaviorSubject;
 
 public class MainActivityPresenter {
 
+    private Semaphore logListLock = new Semaphore(1);
+
+    /**
+     * Format string for sensor chart items.
+     */
     public static final DateFormat FORMAT_DATE_HOUR = new SimpleDateFormat("HH:mm:ss");
+    /**
+     * Empty sensor chart entry array.
+     */
+    public static final Entry[] EMPTY_SENSOR_CHART_ENTRIES = new Entry[]{};
+
+    /**
+     * Pool for items in log list.
+     */
+    private final LogListItemPool logListItemPool;
 
     /**
      * Observable for server address text.
      */
     private BehaviorSubject<String> serverAddressObservable = BehaviorSubject.create();
 
+    /**
+     * Reference on main activity.
+     * TODO: Probably should use weak reference?
+     */
     private MainActivity mainActivity;
 
     /**
      * Observable for display of location settings dialog.
      */
     private BehaviorSubject showLocationSettingsDialogObservable = BehaviorSubject.create();
+
+    /**
+     * Observable for calling activity floating action menu collapse.
+     */
     private BehaviorSubject collapseFloatingActionsMenuObservable = BehaviorSubject.create();
 
     /**
@@ -97,20 +122,27 @@ public class MainActivityPresenter {
     private LocationManager locationManager;
 
     /**
-     * Line chart.
-     * TODO: Remove / let it reside just in view/activity.
+     * Adapter for log list items.
      */
-    private LineChart lineChart;
     private LogListAdapter logListAdapter;
+    private Subscription onGetSensorDataSubscription;
+    private Subscription connectionStateChangedUISubscription;
+    private Subscription getLogListItemSubscription;
+    private Subscription connectionStateChangedSubscription;
 
     /**
      * Public constructor.
      */
-    public MainActivityPresenter(AndroidApplication androidApplication, BrokerServiceClient brokerServiceClient, ConnectivityController connectivityController, LocationManager locationManager) {
+    public MainActivityPresenter(AndroidApplication androidApplication,
+                                 BrokerServiceClient brokerServiceClient,
+                                 ConnectivityController connectivityController,
+                                 LocationManager locationManager,
+                                 LogListItemPool logListItemPool) {
         this.androidApplication = androidApplication;
         this.brokerServiceClient = brokerServiceClient;
         this.connectivityController = connectivityController;
         this.locationManager = locationManager;
+        this.logListItemPool = logListItemPool;
     }
 
 
@@ -126,21 +158,22 @@ public class MainActivityPresenter {
                 return null;
             }
         };
-        sendTestTask.execute();
+        sendTestTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
+    /**
+     * Collapse floating actions menu.
+     */
     private void collapseFloatingActionsMenu() {
         collapseFloatingActionsMenuObservable.onNext(null);
     }
 
     /**
      * Set up line chart.
-     *
-     * @param lineChart Line chart to set up.
      */
-    public void setUpLineChart(LineChart lineChart) {
+    public void setUpLineChart() {
 
-        this.lineChart = lineChart;
+        LineChart lineChart = mainActivity.getSensorDataChart();
 
         ArrayList<Entry> yVals = new ArrayList<>();
         sensorDataSet = new LineDataSet(yVals, "DataSet 1");
@@ -199,17 +232,20 @@ public class MainActivityPresenter {
      */
     private void updateSensorDataChart(Integer count) {
 
+        LineChart lineChart = mainActivity.getSensorDataChart();
+
         String timeText = FORMAT_DATE_HOUR.format(new Date());
 
         while (queuedSensorChartEntries.size() > 5) {
-            sensorDataSet.removeEntry(queuedSensorChartEntries.remove());
+            Entry entry = queuedSensorChartEntries.poll();
+            sensorDataSet.removeEntry(entry);
             chartXVals.remove(0);
         }
 
         int peekVal = 0;
 
         for (int i = 0; i < queuedSensorChartEntries.size(); ++i) {
-            Entry currentEntry = queuedSensorChartEntries.toArray(new Entry[]{})[i];
+            Entry currentEntry = queuedSensorChartEntries.toArray(EMPTY_SENSOR_CHART_ENTRIES)[i];
             currentEntry.setXIndex(i);
             if ((int) currentEntry.getVal() > peekVal) {
                 peekVal = (int) currentEntry.getVal();
@@ -225,7 +261,7 @@ public class MainActivityPresenter {
         sensorDataSet.addEntry(entry);
         chartXVals.add(timeText);
 
-        queuedSensorChartEntries.add(entry);
+        queuedSensorChartEntries.offer(entry);
 
         if (null == lineChart)
             return;
@@ -268,38 +304,25 @@ public class MainActivityPresenter {
 
         this.mainActivity = mainActivity;
 
-        logListAdapter = new LogListAdapter(androidApplication);
+        logListAdapter = new LogListAdapter(androidApplication, logListItemPool);
 
         serverAddressObservable.onNext(connectivityController.getServerAddress());
 
-        androidApplication.getSensorDataObservable().subscribe(new Action1<SensorDataDTO>() {
+        onGetSensorDataSubscription = androidApplication.getSensorDataObservable().subscribe(new Action1<SensorDataDTO>() {
 
             @Override
             public void call(SensorDataDTO value) {
-                final LogListItem logListItem = new LogListItem();
-                logListItem.setTimestamp(new Date(value.getTimestamp()));
-                if (value.getPayload() instanceof AccelerometerDataPayload) {
-                    logListItem.setType(LogListItemType.SENSOR_ACCELEROMETER);
-                }
-                if (value.getPayload() instanceof LocationDataPayload) {
-                    logListItem.setType(LogListItemType.SENSOR_GPS);
-                }
-                androidApplication.getLogListItemObservable().onNext(logListItem);
+                onGetSensorData(value);
             }
         });
 
-        androidApplication.getLogListItemObservable()
+        getLogListItemSubscription = androidApplication.getLogListItemObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<LogListItem>() {
 
                     @Override
                     public void call(LogListItem logListItem) {
-
-                        while (logListAdapter.getCount() > 10) {
-                            logListAdapter.remove(logListAdapter.getItem(0));
-                        }
-                        logListAdapter.add(logListItem);
-
+                        onGetLogListItem(logListItem);
                     }
                 });
 
@@ -307,7 +330,7 @@ public class MainActivityPresenter {
                 getConnectionStateChangedSubject();
 
         // Handle UI logic for connection state change.
-        connectionStateChangedSubject
+        connectionStateChangedUISubscription =connectionStateChangedSubject
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
@@ -317,7 +340,8 @@ public class MainActivityPresenter {
                 });
 
         // Handle business logic for connection state change.
-        connectionStateChangedSubject
+        // TODO: Refactor / move.
+        connectionStateChangedSubscription = connectionStateChangedSubject
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
@@ -327,10 +351,60 @@ public class MainActivityPresenter {
                 });
     }
 
+    public void onDestroy() {
+        if (null != onGetSensorDataSubscription) {
+            onGetSensorDataSubscription.unsubscribe();
+            onGetSensorDataSubscription = null;
+        }
+
+        if (null != getLogListItemSubscription) {
+            getLogListItemSubscription.unsubscribe();
+            getLogListItemSubscription = null;
+        }
+
+        if (null != connectionStateChangedUISubscription) {
+            connectionStateChangedUISubscription.unsubscribe();
+            connectionStateChangedUISubscription = null;
+        }
+
+        if (null != connectionStateChangedSubscription) {
+            connectionStateChangedSubscription.unsubscribe();
+            connectionStateChangedSubscription = null;
+        }
+    }
+
+    private void onGetLogListItem(LogListItem logListItem) {
+
+        try {
+            logListLock.acquire();
+        } catch (InterruptedException e) {
+
+        }
+        while (logListAdapter.getCount() > 10) {
+            LogListItem item = logListAdapter.getItem(0);
+            logListAdapter.remove(item);
+            logListItemPool.add(item);
+        }
+        logListAdapter.add(logListItem);
+        logListLock.release();
+    }
+
+    private void onGetSensorData(SensorDataDTO value) {
+        LogListItem logListItem = logListItemPool.get();
+        logListItem.setTimestamp(new Date(value.getTimestamp()));
+        if (value.getPayload() instanceof AccelerometerDataPayload) {
+            logListItem.setType(LogListItemType.SENSOR_ACCELEROMETER);
+        }
+        if (value.getPayload() instanceof LocationDataPayload) {
+            logListItem.setType(LogListItemType.SENSOR_GPS);
+        }
+        androidApplication.getLogListItemObservable().onNext(logListItem);
+    }
+
     private void pushLogItemForConnectionState(ConnectionState connectionState) {
         if (ConnectionState.CONNECTED.equals(connectionState) ||
                 ConnectionState.DISCONNECTED.equals(connectionState)) {
-            LogListItem logListItem = new LogListItem();
+            LogListItem logListItem = logListItemPool.get();
             logListItem.setTimestamp(new Date());
             logListItem.setType(ConnectionState.CONNECTED.equals(connectionState) ?
                     LogListItemType.CONNECTED : LogListItemType.DISCONNECTED);
@@ -382,7 +456,7 @@ public class MainActivityPresenter {
                 return null;
             }
         };
-        disconnectTask.execute();
+        disconnectTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
 
@@ -421,5 +495,9 @@ public class MainActivityPresenter {
 
         DialogFragment newFragment = AboutDialogFragment.newInstance();
         newFragment.show(ft, "dialog");
+    }
+
+    public void onConfigurationChanged(Configuration newConfig) {
+
     }
 }

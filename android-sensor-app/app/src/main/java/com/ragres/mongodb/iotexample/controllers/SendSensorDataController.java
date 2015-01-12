@@ -13,6 +13,7 @@ import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.activities.LogListItem;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItemPool;
 import com.ragres.mongodb.iotexample.ui.activities.LogListItemType;
 
 import java.util.ArrayList;
@@ -47,10 +48,19 @@ public class SendSensorDataController {
      * Buffer event timeout.
      */
     public static final int SEND_BUFFER_TIMEOUT = 1000;
+
+    /**
+     * Is logging of sensor data enabled?
+     * If true, sensor data is written to log.
+     */
+    private static boolean LOG_SENSOR_DATA = false;
+
     /**
      * Unit for buffer event timeout.
      */
     public static final TimeUnit SEND_BUFFER_TIMEOUT_UNIT = TimeUnit.MILLISECONDS;
+
+    private final LogListItemPool logListItemPool;
     /**
      * Android application instance.
      */
@@ -71,11 +81,7 @@ public class SendSensorDataController {
      */
     private BehaviorSubject sensorDataObservable;
 
-    /**
-     * Is logging of sensor data enabled?
-     * If true, sensor data is written to log.
-     */
-    private static boolean LOG_SENSOR_DATA = true;
+
 
     /**
      * Subscription for sending data
@@ -98,13 +104,17 @@ public class SendSensorDataController {
      * Public constructor.
      */
     @Inject
-    public SendSensorDataController(AndroidApplication androidApplication, BehaviorSubject sensorDataObservable, BrokerServiceClient brokerServiceClient, Gson gson) {
+    public SendSensorDataController(AndroidApplication androidApplication,
+                                    BehaviorSubject sensorDataObservable,
+                                    BrokerServiceClient brokerServiceClient,
+                                    Gson gson,
+                                    LogListItemPool logListItemPool) {
         this.androidApplication = androidApplication;
         this.sensorDataObservable = sensorDataObservable;
         this.sendDataScheduler = Schedulers.from(sendDataExecutor);
         this.brokerServiceClient = brokerServiceClient;
         this.gson = gson;
-
+        this.logListItemPool = logListItemPool;
     }
 
     /**
@@ -189,10 +199,9 @@ public class SendSensorDataController {
             }
 
             sendSensorDataDTO(sensorDataDTO);
-
         }
 
-        LogListItem logListItem = new LogListItem();
+        LogListItem logListItem = logListItemPool.get();
         logListItem.setTimestamp(new Date());
         logListItem.setType(LogListItemType.SEND_SENSOR_DATA);
         androidApplication.getLogListItemObservable().onNext(logListItem);

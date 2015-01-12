@@ -9,11 +9,26 @@
     <string name="label_server_address">MQTT Server Address:</string>
     <string name="label_connection_status_descr_text">Connection Status: </string>
     <string name="value_default_mqtt_server">"tcp://localhost:1883"</string>
+    <string name="value_crash_report_mail_recipient">ralph.greschner.dev@gmail.com</string>
     <string name="show_location_settings_dialog_cancel">Cancel</string>
     <string name="show_location_settings_dialog_message">GPS is not enabled. Do you want to go to settings menu?</string>
     <string name="show_location_settings_dialog_title">Enable GPS</string>
     <string name="show_location_settings_dialog_okay">Settings</string>
     <string name="dialog_connect_mqtt_title">MQTT Broker</string>
     <string name="dialog_about_title">About</string>
+    <string name="label_sensor_data_text">Sensor Data for:</string>
+
+    <string name="crash_notif_ticker_text">Unexpected error, please send a report…</string>
+    <string name="crash_notif_title">MongoDB IoT Example has crashed…</string>
+    <string name="crash_notif_text">Please click here to help fix the issue.</string>
+
+    <string name="crash_dialog_title">MongoDB IoT Example has crashed</string>
+    <string name="crash_dialog_text">
+        An unexpected error occurred forcing the
+        application to stop. Please help fix the issue by sending error data,
+        all you have to do is click OK.
+    </string>
+    <string name="crash_dialog_comment_prompt">You might add your comments about the problem below:</string>
+    <string name="crash_dialog_ok_toast">Thank you!</string>
 
 </resources>

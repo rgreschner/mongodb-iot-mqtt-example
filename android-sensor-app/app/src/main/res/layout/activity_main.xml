@@ -1,8 +1,8 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:fab="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:fab="http://schemas.android.com/apk/res-auto"
     tools:context=".MyActivity">
 
     <LinearLayout
@@ -29,39 +29,66 @@
             android:layout_height="fill_parent"
             android:orientation="vertical">
 
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:layout_marginLeft="@dimen/activity_horizontal_margin"
+                android:layout_marginRight="@dimen/activity_horizontal_margin"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="8dp"
+                    android:text="@string/label_sensor_data_text"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/label_device_name_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
-                android:orientation="vertical"
-                android:layout_weight="5"
-                android:paddingLeft="4dp"
-                android:paddingRight="8dp"
-                >
+                android:orientation="vertical">
 
-                <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/chart"
+                <LinearLayout
                     android:layout_width="fill_parent"
                     android:layout_height="fill_parent"
-                    />
+                    android:layout_weight="5"
+                    android:orientation="vertical"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="8dp">
 
-            </LinearLayout>
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/sensor_data_chart"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent" />
+
+                </LinearLayout>
 
 
-            <LinearLayout
-                android:layout_width="fill_parent"
-                android:layout_height="fill_parent"
-                android:orientation="vertical"
-                android:layout_weight="5">
-
-                <ListView
-                    android:id="@+id/log_list"
-                    android:padding="8dp"
+                <LinearLayout
                     android:layout_width="fill_parent"
-                    android:layout_height="fill_parent"/>
+                    android:layout_height="fill_parent"
+                    android:layout_weight="5"
+                    android:orientation="vertical">
+
+                    <ListView
+                        android:id="@+id/log_list"
+                        android:layout_width="fill_parent"
+                        android:layout_height="fill_parent"
+                        android:padding="8dp" />
+                </LinearLayout>
+
             </LinearLayout>
 
-         </LinearLayout>
+        </LinearLayout>
+
 
     </LinearLayout>
 
@@ -71,33 +98,33 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginRight="16dp"
+
         fab:fab_addButtonColorNormal="@color/white"
         fab:fab_addButtonColorPressed="@color/white_pressed"
-        fab:fab_addButtonPlusIconColor="@color/half_black"
-
-        android:layout_marginBottom="16dp"
-        android:layout_marginRight="16dp"
-        android:layout_marginEnd="16dp">
+        fab:fab_addButtonPlusIconColor="@color/half_black">
 
         <com.getbase.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnTestMQTT"
+            android:id="@+id/btn_test_mqtt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            fab:fab_icon="@drawable/fbtn_test"
             fab:fab_colorNormal="@color/white"
-            fab:fab_title="Action A"
-            fab:fab_colorPressed="@color/white_pressed" />
+            fab:fab_colorPressed="@color/white_pressed"
+            fab:fab_icon="@drawable/fbtn_test"
+            fab:fab_title="Action A" />
 
         <com.getbase.floatingactionbutton.FloatingActionButton
             android:id="@+id/btn_about"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            fab:fab_icon="@drawable/fbtn_about"
             fab:fab_colorNormal="@color/white"
-            fab:fab_title="Action A"
-            fab:fab_colorPressed="@color/white_pressed" />
+            fab:fab_colorPressed="@color/white_pressed"
+            fab:fab_icon="@drawable/fbtn_about"
+            fab:fab_title="Action A" />
 
     </com.getbase.floatingactionbutton.FloatingActionsMenu>
 

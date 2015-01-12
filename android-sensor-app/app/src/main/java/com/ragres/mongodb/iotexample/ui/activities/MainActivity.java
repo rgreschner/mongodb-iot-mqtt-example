@@ -3,10 +3,12 @@ package com.ragres.mongodb.iotexample.ui.activities;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -21,11 +23,9 @@ import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.ui.ConnectivityButtonStates;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 
@@ -36,18 +36,36 @@ public class MainActivity extends ActionBarActivity {
 
 
     /**
-     * Map containings mappings for button states according to connectivity
-     * state.
-     * Key: Connection state.
+     * Mapping of connectivity state to button enabled / visible
+     * states.
+     * Key: Connection state as ordinal.
      * Value: Button states for connection states.
      */
-    private static Map<ConnectionState, ConnectivityButtonStates> connectivityButtonStateList
-            = new HashMap<>();
+    private static SparseArray<ConnectivityButtonStates> CONNECTIVITY_BUTTON_STATES
+            = new SparseArray<>(ConnectionState.values().length);
 
     /**
      * Static initializer.
      */
     static {
+        initializeButtonStates();
+    }
+
+    /**
+     * Put button states for connectivity states.
+     * @param connectionState
+     * @param states
+     */
+    private static void putConnectivityButtonState(ConnectionState connectionState,
+                                                   ConnectivityButtonStates states) {
+        int connectionStateOrdinal = connectionState.ordinal();
+        CONNECTIVITY_BUTTON_STATES.put(connectionStateOrdinal, states);
+    }
+
+    /**
+     * Initialize connectivity button states.
+     */
+    private static void initializeButtonStates() {
         ConnectivityButtonStates buttonStates = null;
 
         buttonStates = new ConnectivityButtonStates();
@@ -56,7 +74,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.UNKNOWN, buttonStates);
+        putConnectivityButtonState(ConnectionState.UNKNOWN, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -64,7 +82,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(true);
-        connectivityButtonStateList.put(ConnectionState.DISCONNECTING, buttonStates);
+        putConnectivityButtonState(ConnectionState.DISCONNECTING, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(true);
@@ -72,7 +90,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(true);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.DISCONNECTED, buttonStates);
+        putConnectivityButtonState(ConnectionState.DISCONNECTED, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -80,7 +98,7 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(true);
         buttonStates.setConnectToServerVisible(false);
         buttonStates.setDisconnectToServerVisible(true);
-        connectivityButtonStateList.put(ConnectionState.CONNECTED, buttonStates);
+        putConnectivityButtonState(ConnectionState.CONNECTED, buttonStates);
 
         buttonStates = new ConnectivityButtonStates();
         buttonStates.setConnectToServerEnabled(false);
@@ -88,32 +106,44 @@ public class MainActivity extends ActionBarActivity {
         buttonStates.setTestMqttEnabled(false);
         buttonStates.setConnectToServerVisible(true);
         buttonStates.setDisconnectToServerVisible(false);
-        connectivityButtonStateList.put(ConnectionState.CONNECTING, buttonStates);
-
+        putConnectivityButtonState(ConnectionState.CONNECTING, buttonStates);
     }
 
+
+    private Subscription getUpdateUIForConnectionStateObservableSubscription;
+    private Subscription getServerAddressObservableSubscription;
+    private Subscription getCollapseFloatingActionsMenuObservableSubscription;
+    private Subscription getShowLocationSettingsDialogObservableSubscription;
 
     /**
      * Test MQTT connection button.
      */
-    @InjectView(R.id.btnTestMQTT)
+    @InjectView(R.id.btn_test_mqtt)
     FloatingActionButton btnTestMQTT;
 
     /**
-     * Test MQTT connection button.
+     * About button.
      */
     @InjectView(R.id.btn_about)
     FloatingActionButton btnAbout;
 
-
-    @InjectView(R.id.chart)
-    LineChart lineChart;
+    /**
+     * Sensor data chart.
+     */
+    @InjectView(R.id.sensor_data_chart)
+    LineChart sensorDataChart;
 
     /**
      * Label for connection status.
      */
-    @InjectView(R.id.labelConnectionStatusValue)
+    @InjectView(R.id.label_connection_status_value)
     TextView labelConnectionStatusValue;
+
+    /**
+     * Label for device name.
+     */
+    @InjectView(R.id.label_device_name_value)
+    TextView labelDeviceNameValue;
 
     /**
      * Label for connection status.
@@ -124,7 +154,7 @@ public class MainActivity extends ActionBarActivity {
     /**
      * Connect to server button.
      */
-    @InjectView(R.id.labelServerAddress)
+    @InjectView(R.id.label_server_address)
     TextView labelServerAddress;
 
 
@@ -205,6 +235,9 @@ public class MainActivity extends ActionBarActivity {
         // Do view injection.
         ButterKnife.inject(this);
 
+        String deviceName = getAndroidApplication().getDeviceName();
+        labelDeviceNameValue.setText(deviceName);
+
         // Setup event listener for test button.
         btnTestMQTT.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -235,7 +268,8 @@ public class MainActivity extends ActionBarActivity {
         mainActivityPresenter.onCreate(this);
         mainActivityPresenter.setLogListAdapter(logList);
 
-        mainActivityPresenter.getUpdateUIForConnectionStateObservable()
+        getUpdateUIForConnectionStateObservableSubscription =
+                mainActivityPresenter.getUpdateUIForConnectionStateObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
@@ -244,7 +278,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getServerAddressObservable()
+        getServerAddressObservableSubscription =
+                mainActivityPresenter.getServerAddressObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<String>() {
                     @Override
@@ -253,7 +288,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getCollapseFloatingActionsMenuObservable()
+        getCollapseFloatingActionsMenuObservableSubscription =
+                mainActivityPresenter.getCollapseFloatingActionsMenuObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<String>() {
                     @Override
@@ -262,7 +298,8 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.getShowLocationSettingsDialogObservable()
+        getShowLocationSettingsDialogObservableSubscription =
+                mainActivityPresenter.getShowLocationSettingsDialogObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1() {
                     @Override
@@ -271,14 +308,14 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
-        mainActivityPresenter.setUpLineChart(lineChart);
+        mainActivityPresenter.setUpLineChart();
     }
 
     private void setUpLineChart() {
-        lineChart.setDrawLegend(false);
-        lineChart.setTouchEnabled(false);
-        lineChart.setHighlightEnabled(false);
-        lineChart.setDescription("");
+        getSensorDataChart().setDrawLegend(false);
+        getSensorDataChart().setTouchEnabled(false);
+        getSensorDataChart().setHighlightEnabled(false);
+        getSensorDataChart().setDescription("");
     }
 
 
@@ -361,6 +398,29 @@ public class MainActivity extends ActionBarActivity {
     }
 
     /**
+     * Get connectivity button states for connection state.
+     * @param connectionState Connection state to get button states for.
+     * @return Button states for connectivity states.
+     */
+    private ConnectivityButtonStates getConnectivityButtonStates(ConnectionState connectionState){
+        ConnectivityButtonStates buttonStates
+                = CONNECTIVITY_BUTTON_STATES.get(ConnectionState.UNKNOWN.ordinal());
+        if (null != connectionState) {
+            int connectionStateOrdinal = connectionState.ordinal();
+            if (CONNECTIVITY_BUTTON_STATES.indexOfKey(connectionStateOrdinal) >= 0) {
+                buttonStates = CONNECTIVITY_BUTTON_STATES.get(connectionStateOrdinal);
+            }
+        }
+        return buttonStates;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mainActivityPresenter.onConfigurationChanged(newConfig);
+    }
+
+    /**
      * Set buttons' enabled state for new connection state.
      *
      * @param connectionState New connection state.
@@ -368,11 +428,7 @@ public class MainActivity extends ActionBarActivity {
     private void setButtonsEnabledForConnectionState(ConnectionState connectionState) {
 
         ConnectivityButtonStates buttonStates =
-                connectivityButtonStateList.get(connectionState);
-
-        if (null == buttonStates) {
-            buttonStates = connectivityButtonStateList.get(ConnectionState.UNKNOWN);
-        }
+                getConnectivityButtonStates(connectionState);
 
         btnTestMQTT.setEnabled(buttonStates.isTestMqttEnabled());
         btnTestMQTT.setVisibility(buttonStates.isTestMqttEnabled() ? View.VISIBLE : View.GONE);
@@ -392,5 +448,43 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+    /**
+     * On activity destroy.
+     */
+    @Override
+    public void onDestroy() {
 
+        super.onDestroy();
+
+        mainActivityPresenter.onDestroy();
+
+        if (null != getCollapseFloatingActionsMenuObservableSubscription){
+            getCollapseFloatingActionsMenuObservableSubscription.unsubscribe();
+            getCollapseFloatingActionsMenuObservableSubscription = null;
+        }
+
+        if (null != getServerAddressObservableSubscription){
+            getServerAddressObservableSubscription.unsubscribe();
+            getServerAddressObservableSubscription = null;
+        }
+
+        if (null != getShowLocationSettingsDialogObservableSubscription){
+            getShowLocationSettingsDialogObservableSubscription.unsubscribe();
+            getShowLocationSettingsDialogObservableSubscription = null;
+        }
+
+        if (null != getUpdateUIForConnectionStateObservableSubscription){
+            getUpdateUIForConnectionStateObservableSubscription.unsubscribe();
+            getUpdateUIForConnectionStateObservableSubscription = null;
+        }
+
+    }
+
+
+    /**
+     * Get sensor data chart.
+     */
+    public LineChart getSensorDataChart() {
+        return sensorDataChart;
+    }
 }

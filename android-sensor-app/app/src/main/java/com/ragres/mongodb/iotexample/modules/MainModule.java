@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItemPool;
 import com.ragres.mongodb.iotexample.ui.activities.MainActivityPresenter;
 import com.ragres.mongodb.iotexample.ui.dialogs.ConnectMqttDialogPresenter;
 
@@ -29,6 +30,7 @@ import dagger.Provides;
                 LocationManager.class,
                 MainActivityPresenter.class,
                 Gson.class,
+                LogListItemPool.class
         }
 )
 public class MainModule {
@@ -89,7 +91,8 @@ public class MainModule {
                 androidApplication.getObjectGraph().get(AndroidApplication.class),
                 androidApplication.getObjectGraph().get(BrokerServiceClient.class),
                 androidApplication.getObjectGraph().get(ConnectivityController.class),
-                androidApplication.getObjectGraph().get(LocationManager.class)
+                androidApplication.getObjectGraph().get(LocationManager.class),
+                androidApplication.getObjectGraph().get(LogListItemPool.class)
         );
 
     }
@@ -103,4 +106,11 @@ public class MainModule {
 
     }
 
+    @Provides
+    @Singleton
+    public LogListItemPool provideLogListItemPool() {
+        return new LogListItemPool();
+
+
+    }
 }
