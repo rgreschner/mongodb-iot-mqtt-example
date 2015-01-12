@@ -344,7 +344,9 @@ public class MainActivityPresenter {
 
     private void onGetLogListItem(LogListItem logListItem) {
         while (logListAdapter.getCount() > 10) {
-            logListAdapter.remove(logListAdapter.getItem(0));
+            LogListItem item = logListAdapter.getItem(0);
+            logListAdapter.remove(item);
+            logListItemPool.add(item);
         }
         logListAdapter.add(logListItem);
     }

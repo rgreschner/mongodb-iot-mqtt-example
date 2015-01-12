@@ -117,10 +117,6 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
             view.setTag(logListItemViewHolder);
         } else {
             logListItemViewHolder = (LogListItemViewHolder) view.getTag();
-            if (0 == position) {
-                logListItemPool.add(logListItemViewHolder.getItem());
-                logListItemViewHolder.setItem(null);
-            }
         }
 
         if (null == logListItemViewHolder){
@@ -160,8 +156,9 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
         }
         TextView text2 = logListItemViewHolder.text2;
         LogListItemType itemType = item.getType();
-        if (null != itemType)
+        if (null != itemType) {
             text2.setText(itemType.toString());
+        }
     }
 
     /**
