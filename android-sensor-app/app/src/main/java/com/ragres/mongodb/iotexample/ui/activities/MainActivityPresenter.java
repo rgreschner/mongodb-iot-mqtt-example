@@ -3,6 +3,7 @@ package com.ragres.mongodb.iotexample.ui.activities;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentTransaction;
+import android.content.res.Configuration;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -31,15 +32,19 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import dagger.internal.ArrayQueue;
+import rx.Subscription;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.subjects.BehaviorSubject;
 
 public class MainActivityPresenter {
+
+    private Semaphore logListLock = new Semaphore(1);
 
     /**
      * Format string for sensor chart items.
@@ -120,6 +125,10 @@ public class MainActivityPresenter {
      * Adapter for log list items.
      */
     private LogListAdapter logListAdapter;
+    private Subscription onGetSensorDataSubscription;
+    private Subscription connectionStateChangedUISubscription;
+    private Subscription getLogListItemSubscription;
+    private Subscription connectionStateChangedSubscription;
 
     /**
      * Public constructor.
@@ -228,7 +237,7 @@ public class MainActivityPresenter {
         String timeText = FORMAT_DATE_HOUR.format(new Date());
 
         while (queuedSensorChartEntries.size() > 5) {
-            Entry entry = queuedSensorChartEntries.remove();
+            Entry entry = queuedSensorChartEntries.poll();
             sensorDataSet.removeEntry(entry);
             chartXVals.remove(0);
         }
@@ -252,7 +261,7 @@ public class MainActivityPresenter {
         sensorDataSet.addEntry(entry);
         chartXVals.add(timeText);
 
-        queuedSensorChartEntries.add(entry);
+        queuedSensorChartEntries.offer(entry);
 
         if (null == lineChart)
             return;
@@ -299,7 +308,7 @@ public class MainActivityPresenter {
 
         serverAddressObservable.onNext(connectivityController.getServerAddress());
 
-        androidApplication.getSensorDataObservable().subscribe(new Action1<SensorDataDTO>() {
+        onGetSensorDataSubscription = androidApplication.getSensorDataObservable().subscribe(new Action1<SensorDataDTO>() {
 
             @Override
             public void call(SensorDataDTO value) {
@@ -307,7 +316,7 @@ public class MainActivityPresenter {
             }
         });
 
-        androidApplication.getLogListItemObservable()
+        getLogListItemSubscription = androidApplication.getLogListItemObservable()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Action1<LogListItem>() {
 
@@ -321,7 +330,7 @@ public class MainActivityPresenter {
                 getConnectionStateChangedSubject();
 
         // Handle UI logic for connection state change.
-        connectionStateChangedSubject
+        connectionStateChangedUISubscription =connectionStateChangedSubject
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
@@ -332,7 +341,7 @@ public class MainActivityPresenter {
 
         // Handle business logic for connection state change.
         // TODO: Refactor / move.
-        connectionStateChangedSubject
+        connectionStateChangedSubscription = connectionStateChangedSubject
                 .subscribe(new Action1<ConnectionState>() {
                     @Override
                     public void call(ConnectionState connectionState) {
@@ -342,17 +351,46 @@ public class MainActivityPresenter {
                 });
     }
 
+    public void onDestroy() {
+        if (null != onGetSensorDataSubscription) {
+            onGetSensorDataSubscription.unsubscribe();
+            onGetSensorDataSubscription = null;
+        }
+
+        if (null != getLogListItemSubscription) {
+            getLogListItemSubscription.unsubscribe();
+            getLogListItemSubscription = null;
+        }
+
+        if (null != connectionStateChangedUISubscription) {
+            connectionStateChangedUISubscription.unsubscribe();
+            connectionStateChangedUISubscription = null;
+        }
+
+        if (null != connectionStateChangedSubscription) {
+            connectionStateChangedSubscription.unsubscribe();
+            connectionStateChangedSubscription = null;
+        }
+    }
+
     private void onGetLogListItem(LogListItem logListItem) {
+
+        try {
+            logListLock.acquire();
+        } catch (InterruptedException e) {
+
+        }
         while (logListAdapter.getCount() > 10) {
             LogListItem item = logListAdapter.getItem(0);
             logListAdapter.remove(item);
             logListItemPool.add(item);
         }
         logListAdapter.add(logListItem);
+        logListLock.release();
     }
 
     private void onGetSensorData(SensorDataDTO value) {
-        final LogListItem logListItem = logListItemPool.get();
+        LogListItem logListItem = logListItemPool.get();
         logListItem.setTimestamp(new Date(value.getTimestamp()));
         if (value.getPayload() instanceof AccelerometerDataPayload) {
             logListItem.setType(LogListItemType.SENSOR_ACCELEROMETER);
@@ -457,5 +495,9 @@ public class MainActivityPresenter {
 
         DialogFragment newFragment = AboutDialogFragment.newInstance();
         newFragment.show(ft, "dialog");
+    }
+
+    public void onConfigurationChanged(Configuration newConfig) {
+
     }
 }

@@ -1,5 +1,9 @@
 package com.ragres.mongodb.iotexample.ui.activities;
 
+import android.util.Log;
+
+import com.ragres.mongodb.iotexample.misc.Logging;
+
 import java.util.Queue;
 import java.util.concurrent.Semaphore;
 
@@ -10,7 +14,9 @@ import dagger.internal.ArrayQueue;
  */
 public class LogListItemPool {
 
-    public static final int ITEM_INIT_SIZE = 20;
+    public static final int ITEM_INIT_SIZE = 10;
+    public static final int ITEM_MAX_SIZE = 15;
+
     /**
      * Lock on pooled instances.
      */
@@ -26,7 +32,7 @@ public class LogListItemPool {
      */
     public LogListItemPool() {
         for(int i = 0; i< ITEM_INIT_SIZE; ++i){
-            items.add(createNew());
+            items.offer(createNew());
         }
     }
 
@@ -52,8 +58,11 @@ public class LogListItemPool {
         } catch (InterruptedException e) {
 
         }
-        item.clear();
-        items.add(item);
+        if (items.size() < ITEM_MAX_SIZE) {
+            item.clear();
+            items.add(item);
+        }
+        //Log.d(Logging.TAG, "Pool count: " + items.size());
         itemsLock.release();
     }
 
@@ -69,15 +78,13 @@ public class LogListItemPool {
 
         }
 
-        LogListItem item = null;
-        if (items.size() < 1){
+        LogListItem item = items.poll();
+        if (null == item) {
             item = createNew();
-        } else {
-            item = items.remove();
         }
 
         itemsLock.release();
-
+        //Log.d(Logging.TAG, "Pool count: " + items.size());
         return item;
     }
 

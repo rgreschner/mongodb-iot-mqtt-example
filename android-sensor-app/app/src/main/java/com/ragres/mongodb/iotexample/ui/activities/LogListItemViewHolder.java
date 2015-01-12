@@ -16,10 +16,6 @@ import butterknife.InjectView;
  */
 public class LogListItemViewHolder {
 
-    /**
-     * Corresponding data.
-     */
-    private LogListItem item;
 
     @InjectView(R.id.item_icon)
     ImageView itemIcon;
@@ -38,19 +34,5 @@ public class LogListItemViewHolder {
         ButterKnife.inject(this, view);
     }
 
-    /**
-     * Get corresponding data.
-     * @return Data for list item.
-     */
-    public LogListItem getItem() {
-        return item;
-    }
 
-    /**
-     * Set corresponding data.
-     * @param item
-     */
-    public void setItem(LogListItem item) {
-        this.item = item;
-    }
 }

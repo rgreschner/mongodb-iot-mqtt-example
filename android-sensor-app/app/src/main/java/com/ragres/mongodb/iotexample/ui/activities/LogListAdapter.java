@@ -113,7 +113,6 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
             view = layoutInflater.inflate(R.layout.item_log_list, parent, false);
             logListItemViewHolder = new LogListItemViewHolder();
             logListItemViewHolder.injectFromView(view);
-            logListItemViewHolder.setItem(item);
             view.setTag(logListItemViewHolder);
         } else {
             logListItemViewHolder = (LogListItemViewHolder) view.getTag();
@@ -139,6 +138,7 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
     private void applyViewData(View view, LogListItem item, LogListItemViewHolder logListItemViewHolder) {
 
         if (null == item){
+            Log.w(Logging.TAG, "LogListItem for apply data is null.");
             return;
         }
 
@@ -147,17 +147,23 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
         Integer resId = getItemIconResource(item);
         if (null != resId) {
             itemIcon.setImageResource(resId);
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no image resource.");
         }
 
         TextView text1 = logListItemViewHolder.text1;
         Date timestamp = item.getTimestamp();
         if (null != timestamp) {
             text1.setText(FORMAT_DATE_SENSOR_TIMESTAMP.format(timestamp));
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no timestamp.");
         }
         TextView text2 = logListItemViewHolder.text2;
         LogListItemType itemType = item.getType();
         if (null != itemType) {
             text2.setText(itemType.toString());
+        } else {
+            Log.w(Logging.TAG, "LogListItem has no type.");
         }
     }
 

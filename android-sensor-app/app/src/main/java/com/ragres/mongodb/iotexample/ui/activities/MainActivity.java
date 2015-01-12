@@ -3,6 +3,7 @@ package com.ragres.mongodb.iotexample.ui.activities;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.ActionBarActivity;
@@ -113,9 +114,6 @@ public class MainActivity extends ActionBarActivity {
     private Subscription getServerAddressObservableSubscription;
     private Subscription getCollapseFloatingActionsMenuObservableSubscription;
     private Subscription getShowLocationSettingsDialogObservableSubscription;
-
-
-
 
     /**
      * Test MQTT connection button.
@@ -416,6 +414,12 @@ public class MainActivity extends ActionBarActivity {
         return buttonStates;
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mainActivityPresenter.onConfigurationChanged(newConfig);
+    }
+
     /**
      * Set buttons' enabled state for new connection state.
      *
@@ -451,6 +455,8 @@ public class MainActivity extends ActionBarActivity {
     public void onDestroy() {
 
         super.onDestroy();
+
+        mainActivityPresenter.onDestroy();
 
         if (null != getCollapseFloatingActionsMenuObservableSubscription){
             getCollapseFloatingActionsMenuObservableSubscription.unsubscribe();

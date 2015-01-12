@@ -199,7 +199,6 @@ public class SendSensorDataController {
             }
 
             sendSensorDataDTO(sensorDataDTO);
-
         }
 
         LogListItem logListItem = logListItemPool.get();
