@@ -88,12 +88,15 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
      */
     private final LayoutInflater layoutInflater;
 
+
+    private LogListItemPool logListItemPool;
+
     /**
      * Public constructor.
      */
-    public LogListAdapter(Context context
-    ) {
+    public LogListAdapter(Context context, LogListItemPool logListItemPool) {
         super(context, R.layout.item_log_list);
+        this.logListItemPool = logListItemPool;
         layoutInflater = (LayoutInflater) super.getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
     }
 
@@ -110,9 +113,14 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
             view = layoutInflater.inflate(R.layout.item_log_list, parent, false);
             logListItemViewHolder = new LogListItemViewHolder();
             logListItemViewHolder.injectFromView(view);
+            logListItemViewHolder.setItem(item);
             view.setTag(logListItemViewHolder);
         } else {
             logListItemViewHolder = (LogListItemViewHolder) view.getTag();
+            if (0 == position) {
+                logListItemPool.add(logListItemViewHolder.getItem());
+                logListItemViewHolder.setItem(null);
+            }
         }
 
         if (null == logListItemViewHolder){
@@ -151,9 +159,16 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
             text1.setText(FORMAT_DATE_SENSOR_TIMESTAMP.format(timestamp));
         }
         TextView text2 = logListItemViewHolder.text2;
-        text2.setText(item.getType().toString());
+        LogListItemType itemType = item.getType();
+        if (null != itemType)
+            text2.setText(itemType.toString());
     }
 
+    /**
+     * Reset displayed data on view.
+     * @param view View.
+     * @param logListItemViewHolder View holder with controls.
+     */
     private void resetViewData(View view, LogListItemViewHolder logListItemViewHolder) {
         logListItemViewHolder.itemIcon.setImageResource(DEFAULT_ICON);
         logListItemViewHolder.text1.setText("");
@@ -166,7 +181,11 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
      * @return Resource id of item icon.
      */
     private int getItemIconResource(LogListItem item) {
-        int typeOrdinal = item.getType().ordinal();
+        LogListItemType type = item.getType();
+        int typeOrdinal = -1;
+        if (null != type) {
+            typeOrdinal = type.ordinal();
+        }
         int resId = ITEM_TYPE_TO_ICONS_MAPPING.get(typeOrdinal, DEFAULT_ICON);
         return resId;
     }

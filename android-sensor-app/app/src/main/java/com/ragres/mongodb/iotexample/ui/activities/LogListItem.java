@@ -32,4 +32,9 @@ public class LogListItem {
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
+
+    public void clear() {
+        type = null;
+        timestamp = null;
+    }
 }

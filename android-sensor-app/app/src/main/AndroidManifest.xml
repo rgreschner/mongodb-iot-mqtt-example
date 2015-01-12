@@ -18,6 +18,13 @@
             </intent-filter>
         </activity>
 
+        <activity android:name="org.acra.CrashReportDialog"
+            android:theme="@style/Theme.Dialog"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true"
+            android:finishOnTaskLaunch="true" />
+
+
         <!-- MQTT Service. -->
         <service android:name="org.eclipse.paho.android.service.MqttService" />
 

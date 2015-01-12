@@ -25,6 +25,7 @@ import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayloa
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
+import com.ragres.mongodb.iotexample.ui.activities.LogListItemPool;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -176,8 +177,9 @@ public class TelemetryService extends Service {
         this.accelerometerSensor = this.sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         this.locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         this.sendSensorDataController = new SendSensorDataController(androidApplication,
-                sensorDataObservable, brokerServiceClient, androidApplication.getObjectGraph()
-                .get(Gson.class));
+                sensorDataObservable, brokerServiceClient,
+                androidApplication.getObjectGraph().get(Gson.class),
+                androidApplication.getObjectGraph().get(LogListItemPool.class));
 
         this.androidApplication.getConnectivityController().getConnectionStateChangedSubject()
                 .observeOn(Schedulers.newThread())
