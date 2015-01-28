@@ -34,13 +34,12 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				var data = JSON.parse(message);
 				var payload = data.payload;
 				
-				// Generate unique id for
-				// received data.
-				data._id = {
-					'timestamp': new Date(data.timestamp),
-					'device': device,
-					'type' : sensorFromTopic
-				};
+				var rawTimestamp = data.timestamp;
+				
+				// Set fields on data.
+				data.timestamp = new Date(rawTimestamp);
+				data.device = device;
+			    data.type = sensorFromTopic;
 				
 				if (sensorFromTopic == "location"){
 					payload.loc = {
@@ -53,19 +52,21 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 					delete payload.latitude;
 					delete payload.longitude;
 				}
-				
-				// Cleanup data, remove dupes.
-				delete data.timestamp;
-				
+								
 				// Upserting, e.g. replacing data here.
 				// The assumption is that sensor values differing only by
 				// fractures of milliseconds are very identical
 				// to each other.
-				dataCollection.update({'_id': data._id}, data, 
-					{'upsert':true}, function (err) {
+				dataCollection.insert(data, function (err, inserted) {
 					if (err) {
 						console.log('Error: ' + err);
+						return ;
 					}
+					var persistedMsg = {
+						"_id" : inserted[0]._id,
+						"timestamp" : rawTimestamp
+					};
+					client.publish('persisted/' + topic, JSON.stringify(persistedMsg));
 				});
 				return;
 			}
