@@ -1,9 +1,16 @@
 package com.ragres.mongodb.iotexample;
 
 import android.app.Application;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 
+import com.mbientlab.metawear.api.MetaWearBleService;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.controllers.MetaWearTestController;
 import com.ragres.mongodb.iotexample.modules.MainModule;
 import com.ragres.mongodb.iotexample.services.TelemetryService;
 import com.ragres.mongodb.iotexample.ui.activities.LogListItem;
@@ -28,13 +35,18 @@ import rx.subjects.BehaviorSubject;
         resDialogCommentPrompt = R.string.crash_dialog_comment_prompt, // optional. when defined, adds a user text field input with this text resource as a label
         resDialogOkToast = R.string.crash_dialog_ok_toast
 )
-public class AndroidApplication extends Application {
+public class AndroidApplication extends Application implements ServiceConnection {
+
+    private MetaWearBleService metaWearService;
+    private MetaWearTestController metaWearCtrlr;
 
     public ObjectGraph getObjectGraph() {
         return objectGraph;
     }
 
     private ObjectGraph objectGraph;
+
+
 
     /**
      * Device name.
@@ -46,6 +58,13 @@ public class AndroidApplication extends Application {
      * Observable for sensor data events.
      */
     private BehaviorSubject sensorDataObservable =
+            BehaviorSubject.create();
+
+    public BehaviorSubject getBlinkLEDObservable() {
+        return blinkLEDObservable;
+    }
+
+    private BehaviorSubject blinkLEDObservable =
             BehaviorSubject.create();
 
     private BehaviorSubject<LogListItem> logListItemObservable =
@@ -96,8 +115,16 @@ public class AndroidApplication extends Application {
 
         this.connectivityController = objectGraph.get(ConnectivityController.class);
 
+        registerReceiver(metaWearUpdateReceiver, MetaWearBleService.getMetaWearIntentFilter());
+
         Intent startServiceIntent = new Intent(this, TelemetryService.class);
         this.startService(startServiceIntent);
+
+        this.bindService(new Intent(this, MetaWearBleService.class),
+                this, Context.BIND_AUTO_CREATE);
+
+        this.startService(new Intent(this, MetaWearBleService.class));
+
     }
 
     private void initCrashReporting() {
@@ -163,5 +190,29 @@ public class AndroidApplication extends Application {
      */
     public BehaviorSubject<LogListItem> getLogListItemObservable() {
         return logListItemObservable;
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder service) {
+        String className = componentName.getClassName();
+        if ("com.mbientlab.metawear.api.MetaWearBleService".equals(className)){
+            onMetaWearServiceConnected(service);
+        }
+    }
+
+    private static final BroadcastReceiver metaWearUpdateReceiver = MetaWearBleService.getMetaWearBroadcastReceiver();
+
+    private void onMetaWearServiceConnected(IBinder service) {
+        metaWearService = ((MetaWearBleService.LocalBinder) service).getService();
+
+        if (null != metaWearCtrlr)
+            return ;
+        metaWearCtrlr = new MetaWearTestController(this, metaWearService);
+        metaWearCtrlr.run();
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
     }
 }

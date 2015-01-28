@@ -109,13 +109,22 @@
         fab:fab_addButtonPlusIconColor="@color/half_black">
 
         <com.getbase.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btn_blink_led"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            fab:fab_colorNormal="@color/white"
+            fab:fab_colorPressed="@color/white_pressed"
+            fab:fab_icon="@drawable/fbtn_blink_led"
+            fab:fab_title="Blink LED" />
+
+        <com.getbase.floatingactionbutton.FloatingActionButton
             android:id="@+id/btn_test_mqtt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             fab:fab_colorNormal="@color/white"
             fab:fab_colorPressed="@color/white_pressed"
             fab:fab_icon="@drawable/fbtn_test"
-            fab:fab_title="Action A" />
+            fab:fab_title="Test MQTT" />
 
         <com.getbase.floatingactionbutton.FloatingActionButton
             android:id="@+id/btn_about"
@@ -124,7 +133,7 @@
             fab:fab_colorNormal="@color/white"
             fab:fab_colorPressed="@color/white_pressed"
             fab:fab_icon="@drawable/fbtn_about"
-            fab:fab_title="Action A" />
+            fab:fab_title="About" />
 
     </com.getbase.floatingactionbutton.FloatingActionsMenu>
 

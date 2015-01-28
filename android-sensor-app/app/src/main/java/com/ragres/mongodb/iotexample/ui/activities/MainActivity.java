@@ -121,6 +121,9 @@ public class MainActivity extends ActionBarActivity {
     @InjectView(R.id.btn_test_mqtt)
     FloatingActionButton btnTestMQTT;
 
+    @InjectView(R.id.btn_blink_led)
+    FloatingActionButton btnBlinkLED;
+
     /**
      * About button.
      */
@@ -251,6 +254,16 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 mainActivityPresenter.onAboutButtonClick();
+            }
+        });
+
+        // Setup event listener for about button.
+        btnBlinkLED.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // TODO: Refactor into method on presenter.
+                getAndroidApplication().getBlinkLEDObservable().onNext(null);
+                floatingActionsMenu.collapse();
             }
         });
 
