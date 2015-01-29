@@ -9,4 +9,4 @@ RUN yum install -y mosquitto mosquitto-clients mongodb-org node npm
 
 VOLUME ["/data"]
 
-EXPOSE 1883 27017
+EXPOSE 1883 3000 27017
