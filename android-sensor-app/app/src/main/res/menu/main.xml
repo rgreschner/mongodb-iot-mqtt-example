@@ -4,6 +4,18 @@
     tools:context=".MyActivity">
 
     <item
+        android:id="@+id/action_connect_bt"
+        android:title="Connect"
+        android:icon="@drawable/ab_connect_bt"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_disconnect_bt"
+        android:title="Disconnect"
+        android:icon="@drawable/ab_disconnect_bt"
+        app:showAsAction="ifRoom" />
+
+    <item
         android:id="@+id/action_connect_mqtt"
         android:title="Connect"
         android:icon="@drawable/ab_connect"

@@ -20,6 +20,8 @@ public class SensorDataDTO {
      */
     private long timestamp;
 
+    private String subDevice;
+
     /**
      * Default constructor.
      */
@@ -76,4 +78,11 @@ public class SensorDataDTO {
         this.timestamp = timestamp;
     }
 
+    public String getSubDevice() {
+        return subDevice;
+    }
+
+    public void setSubDevice(String subDevice) {
+        this.subDevice = subDevice;
+    }
 }

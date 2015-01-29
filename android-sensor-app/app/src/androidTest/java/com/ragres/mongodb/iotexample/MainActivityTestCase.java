@@ -31,12 +31,12 @@ public class MainActivityTestCase extends ActivityInstrumentationTestCase2<MainA
 
 
     public void testButtonNotNull() {
-        View button = activity.findViewById(R.id.btnTestMQTT);
+        View button = activity.findViewById(R.id.btn_test_mqtt);
         assertNotNull(button);
     }
 
     public void testServerAddressIsDefault() {
-        TextView label = (TextView) activity.findViewById(R.id.labelServerAddress);
+        TextView label = (TextView) activity.findViewById(R.id.label_server_address);
         assertEquals(activity.getResources().getString(R.string.value_default_mqtt_server), label.getText());
     }
 
