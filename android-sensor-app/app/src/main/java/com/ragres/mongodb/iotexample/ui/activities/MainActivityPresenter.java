@@ -17,10 +17,12 @@ import com.github.mikephil.charting.utils.ValueFormatter;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.R;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.controllers.MetaWearTestController;
 import com.ragres.mongodb.iotexample.domain.ConnectionState;
 import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.TemperatureDataPayload;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.dialogs.AboutDialogFragment;
@@ -70,6 +72,13 @@ public class MainActivityPresenter {
      * TODO: Probably should use weak reference?
      */
     private MainActivity mainActivity;
+
+    public BehaviorSubject<Boolean> getMetaWearConnectionStateChangedObservable() {
+        return metaWearConnectionStateChangedObservable;
+    }
+
+    private BehaviorSubject<Boolean> metaWearConnectionStateChangedObservable =
+            BehaviorSubject.create();
 
     /**
      * Observable for display of location settings dialog.
@@ -121,6 +130,8 @@ public class MainActivityPresenter {
      */
     private LocationManager locationManager;
 
+    private MetaWearTestController metaWearTestController;
+
     /**
      * Adapter for log list items.
      */
@@ -129,6 +140,7 @@ public class MainActivityPresenter {
     private Subscription connectionStateChangedUISubscription;
     private Subscription getLogListItemSubscription;
     private Subscription connectionStateChangedSubscription;
+    private Subscription test;
 
     /**
      * Public constructor.
@@ -137,12 +149,15 @@ public class MainActivityPresenter {
                                  BrokerServiceClient brokerServiceClient,
                                  ConnectivityController connectivityController,
                                  LocationManager locationManager,
-                                 LogListItemPool logListItemPool) {
+                                 LogListItemPool logListItemPool,
+                                 MetaWearTestController metaWearTestController) {
         this.androidApplication = androidApplication;
         this.brokerServiceClient = brokerServiceClient;
         this.connectivityController = connectivityController;
         this.locationManager = locationManager;
         this.logListItemPool = logListItemPool;
+        this.metaWearTestController = metaWearTestController;
+
     }
 
 
@@ -326,6 +341,16 @@ public class MainActivityPresenter {
                     }
                 });
 
+        test = metaWearTestController.getMetaWearConnectionStateChangedObservable()
+                .subscribe(new Action1<Boolean>() {
+
+                    @Override
+                    public void call(Boolean isConnected) {
+                        metaWearConnectionStateChangedObservable.onNext(isConnected);
+                    }
+                });
+
+
         BehaviorSubject<ConnectionState> connectionStateChangedSubject = connectivityController.
                 getConnectionStateChangedSubject();
 
@@ -394,6 +419,9 @@ public class MainActivityPresenter {
         logListItem.setTimestamp(new Date(value.getTimestamp()));
         if (value.getPayload() instanceof AccelerometerDataPayload) {
             logListItem.setType(LogListItemType.SENSOR_ACCELEROMETER);
+        }
+        if (value.getPayload() instanceof TemperatureDataPayload) {
+            logListItem.setType(LogListItemType.SENSOR_TEMPERATURE);
         }
         if (value.getPayload() instanceof LocationDataPayload) {
             logListItem.setType(LogListItemType.SENSOR_GPS);
@@ -499,5 +527,17 @@ public class MainActivityPresenter {
 
     public void onConfigurationChanged(Configuration newConfig) {
 
+    }
+
+    public void connectBluetooth() {
+        androidApplication.getConnectBluetoothObservable().onNext(null);
+    }
+
+    public void disconnectBluetooth() {
+        androidApplication.getDisconnectBluetoothObservable().onNext(null);
+    }
+
+    public void forceUpdateMetaWearConnectionState() {
+        metaWearConnectionStateChangedObservable.onNext(metaWearTestController.isConnected());
     }
 }

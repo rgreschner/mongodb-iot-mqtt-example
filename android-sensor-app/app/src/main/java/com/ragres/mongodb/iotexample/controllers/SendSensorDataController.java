@@ -9,6 +9,7 @@ import com.ragres.mongodb.iotexample.domain.dto.SensorDataDTO;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AbstractPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.AccelerometerDataPayload;
 import com.ragres.mongodb.iotexample.domain.dto.payloads.LocationDataPayload;
+import com.ragres.mongodb.iotexample.domain.dto.payloads.TemperatureDataPayload;
 import com.ragres.mongodb.iotexample.misc.DeviceSubTopics;
 import com.ragres.mongodb.iotexample.misc.Logging;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
@@ -257,6 +258,10 @@ public class SendSensorDataController {
 
         if (payload instanceof LocationDataPayload) {
             sensorSubTopic = DeviceSubTopics.SUBTOPIC_LOCATION;
+        }
+
+        if (payload instanceof TemperatureDataPayload) {
+            sensorSubTopic = DeviceSubTopics.SUBTOPIC_TEMPERATURE;
         }
 
         return sensorSubTopic;

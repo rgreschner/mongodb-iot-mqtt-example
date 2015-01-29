@@ -46,8 +46,6 @@ public class AndroidApplication extends Application implements ServiceConnection
 
     private ObjectGraph objectGraph;
 
-
-
     /**
      * Device name.
      * ASSUMPTION: this is usable as MQTT identifier.
@@ -65,6 +63,20 @@ public class AndroidApplication extends Application implements ServiceConnection
     }
 
     private BehaviorSubject blinkLEDObservable =
+            BehaviorSubject.create();
+
+    public BehaviorSubject getConnectBluetoothObservable() {
+        return connectBluetoothObservable;
+    }
+
+    private BehaviorSubject connectBluetoothObservable =
+            BehaviorSubject.create();
+
+    public BehaviorSubject getDisconnectBluetoothObservable() {
+        return disconnectBluetoothObservable;
+    }
+
+    private BehaviorSubject disconnectBluetoothObservable =
             BehaviorSubject.create();
 
     private BehaviorSubject<LogListItem> logListItemObservable =
@@ -114,6 +126,7 @@ public class AndroidApplication extends Application implements ServiceConnection
         this.deviceName = android.os.Build.MODEL;
 
         this.connectivityController = objectGraph.get(ConnectivityController.class);
+        this.metaWearCtrlr = objectGraph.get(MetaWearTestController.class);
 
         registerReceiver(metaWearUpdateReceiver, MetaWearBleService.getMetaWearIntentFilter());
 
@@ -200,15 +213,13 @@ public class AndroidApplication extends Application implements ServiceConnection
         }
     }
 
-    private static final BroadcastReceiver metaWearUpdateReceiver = MetaWearBleService.getMetaWearBroadcastReceiver();
+    private static final BroadcastReceiver metaWearUpdateReceiver
+            = MetaWearBleService.getMetaWearBroadcastReceiver();
 
     private void onMetaWearServiceConnected(IBinder service) {
         metaWearService = ((MetaWearBleService.LocalBinder) service).getService();
 
-        if (null != metaWearCtrlr)
-            return ;
-        metaWearCtrlr = new MetaWearTestController(this, metaWearService);
-        metaWearCtrlr.run();
+        metaWearCtrlr.init(metaWearService);
     }
 
     @Override

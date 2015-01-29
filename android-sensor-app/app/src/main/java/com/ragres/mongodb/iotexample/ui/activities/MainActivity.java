@@ -51,6 +51,8 @@ public class MainActivity extends ActionBarActivity {
         initializeButtonStates();
     }
 
+    private Subscription testSubscription;
+
     /**
      * Put button states for connectivity states.
      * @param connectionState
@@ -321,6 +323,16 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
 
+        testSubscription =
+                mainActivityPresenter.getMetaWearConnectionStateChangedObservable()
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(new Action1<Boolean>() {
+                            @Override
+                            public void call(Boolean isConnected) {
+                                setButtonsEnabledForMetaWearConnectionState(isConnected);
+                            }
+                        });
+
         mainActivityPresenter.setUpLineChart();
     }
 
@@ -339,6 +351,7 @@ public class MainActivity extends ActionBarActivity {
     public void onResume() {
         super.onResume();
         mainActivityPresenter.forceUpdateUIForConnectionState();
+        mainActivityPresenter.forceUpdateMetaWearConnectionState();
         mainActivityPresenter.checkAndEnableGps();
     }
 
@@ -386,6 +399,7 @@ public class MainActivity extends ActionBarActivity {
         this.menu = menu;
         getMenuInflater().inflate(R.menu.main, menu);
         mainActivityPresenter.forceUpdateUIForConnectionState();
+        mainActivityPresenter.forceUpdateMetaWearConnectionState();
         return true;
     }
 
@@ -403,6 +417,12 @@ public class MainActivity extends ActionBarActivity {
                 break;
             case R.id.action_disconnect_mqtt:
                 mainActivityPresenter.disconnectFromServer();
+                break;
+            case R.id.action_connect_bt:
+                mainActivityPresenter.connectBluetooth();
+                break;
+            case R.id.action_disconnect_bt:
+                mainActivityPresenter.disconnectBluetooth();
                 break;
             default:
                 break;
@@ -459,6 +479,20 @@ public class MainActivity extends ActionBarActivity {
         }
 
 
+    }
+
+    private void setButtonsEnabledForMetaWearConnectionState(boolean isConnected) {
+        if (null != menu) {
+            menu.findItem(R.id.action_connect_bt)
+                    .setEnabled(!isConnected);
+            menu.findItem(R.id.action_disconnect_bt)
+                    .setEnabled(isConnected);
+
+            menu.findItem(R.id.action_connect_bt)
+                    .setVisible(!isConnected);
+            menu.findItem(R.id.action_disconnect_bt)
+                    .setVisible(isConnected);
+        }
     }
 
     /**

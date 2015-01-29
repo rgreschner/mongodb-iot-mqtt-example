@@ -6,6 +6,7 @@ import android.location.LocationManager;
 import com.google.gson.Gson;
 import com.ragres.mongodb.iotexample.AndroidApplication;
 import com.ragres.mongodb.iotexample.controllers.ConnectivityController;
+import com.ragres.mongodb.iotexample.controllers.MetaWearTestController;
 import com.ragres.mongodb.iotexample.serviceClients.BrokerServiceClient;
 import com.ragres.mongodb.iotexample.ui.activities.LogListItemPool;
 import com.ragres.mongodb.iotexample.ui.activities.MainActivityPresenter;
@@ -30,7 +31,8 @@ import dagger.Provides;
                 LocationManager.class,
                 MainActivityPresenter.class,
                 Gson.class,
-                LogListItemPool.class
+                LogListItemPool.class,
+                MetaWearTestController.class
         }
 )
 public class MainModule {
@@ -92,7 +94,8 @@ public class MainModule {
                 androidApplication.getObjectGraph().get(BrokerServiceClient.class),
                 androidApplication.getObjectGraph().get(ConnectivityController.class),
                 androidApplication.getObjectGraph().get(LocationManager.class),
-                androidApplication.getObjectGraph().get(LogListItemPool.class)
+                androidApplication.getObjectGraph().get(LogListItemPool.class),
+                androidApplication.getObjectGraph().get(MetaWearTestController.class)
         );
 
     }
@@ -110,7 +113,13 @@ public class MainModule {
     @Singleton
     public LogListItemPool provideLogListItemPool() {
         return new LogListItemPool();
+    }
 
-
+    @Provides
+    @Singleton
+    public MetaWearTestController provideA(){
+        return new MetaWearTestController(
+                androidApplication.getObjectGraph().get(AndroidApplication.class)
+        );
     }
 }

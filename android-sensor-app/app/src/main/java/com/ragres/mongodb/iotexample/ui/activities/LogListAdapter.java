@@ -60,6 +60,11 @@ public class LogListAdapter extends ArrayAdapter<LogListItem> {
                 LogListItemType.SENSOR_ACCELEROMETER,
                 R.drawable.loglistitem_icon_sensor_accelerometer);
 
+        // TODO: Proper icon.
+            putIconMapping(
+                    LogListItemType.SENSOR_TEMPERATURE,
+                    R.drawable.loglistitem_icon_sensor_accelerometer);
+
         putIconMapping(
                 LogListItemType.SENSOR_GPS,
                 R.drawable.loglistitem_icon_sensor_gps);

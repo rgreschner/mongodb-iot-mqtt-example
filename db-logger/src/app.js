@@ -27,7 +27,7 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 				console.log('Debug: ' + message);
 				return;
 			}
-			if (topic.indexOf('/accelerometer') >= 0 || topic.indexOf('/location') >= 0) {
+			if (topic.indexOf('/accelerometer') >= 0 || topic.indexOf('/temperature') >= 0 || topic.indexOf('/location') >= 0) {
 			
 				var sensorFromTopic = splitTopic[2];
 			
@@ -80,6 +80,7 @@ MongoClient.connect(config.MONGODB_CONNECTION_URL, function (err, db) {
 	var topicsToSubscribe = [
 		'device/+/accelerometer',
 		'device/+/location',
+		'device/+/temperature',
 		'device/+/debug'
 	];
 
